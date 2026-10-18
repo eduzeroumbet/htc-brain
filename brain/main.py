@@ -11,21 +11,65 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from brain.channels import huda, meta_dm, telegram, webchat, whatsapp
-from brain.core import db, orchestrator, scheduler
-from brain.dashboard.api import router as dashboard_router
-from brain.settings import get_settings
+from brain.core import logsafe
+
+logsafe.configure()  # redação de segredos em todo log, antes de qualquer módulo logar
+
+from brain.channels import huda, meta_dm, telegram, webchat, whatsapp  # noqa: E402
+from brain.core import db, orchestrator, panel_auth, payment_webhook, scheduler  # noqa: E402
+from brain.dashboard.api import router as dashboard_router  # noqa: E402
+from brain.settings import get_settings  # noqa: E402
 
 log = structlog.get_logger(__name__)
 STATIC = Path(__file__).parent / "dashboard" / "static"
 security = HTTPBasic()
+_cf_verifier: panel_auth.CloudflareVerifier | None = None
 
 
-def require_ceo(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+def access_config() -> panel_auth.AccessConfig:
+    s = get_settings()
+    return panel_auth.AccessConfig(
+        mode=s.panel_auth_mode.strip().lower(), require_strong=s.panel_require_strong_auth,
+        cf_team_domain=s.cf_access_team_domain, cf_aud=s.cf_access_aud, cf_jwks_url=s.cf_access_jwks_url,
+        tailscale_allowed=tuple(a for a in s.tailscale_allowed_logins.split(",") if a.strip()))
+
+
+def enforce_panel_config() -> None:
+    """Partida fail-closed: senha ausente/vazia/fraca ou autenticação forte incompleta → PanelConfigError."""
+    panel_auth.check_admin_password(get_settings().dashboard_password)
+    panel_auth.check_access_config(access_config())
+
+
+async def require_strong_identity(request: Request) -> str | None:
+    """Camada na frente do Basic: JWT do Cloudflare Access ou identidade do Tailscale, conforme PANEL_AUTH_MODE."""
+    global _cf_verifier
+    cfg = access_config()
+    try:
+        if cfg.mode == "cloudflare":
+            if _cf_verifier is None or _cf_verifier.cfg != cfg:
+                _cf_verifier = panel_auth.CloudflareVerifier(cfg)
+            claims = await _cf_verifier.verify(request.headers.get("Cf-Access-Jwt-Assertion"))
+            return str(claims.get("email") or claims.get("sub") or "")
+        if cfg.mode == "tailscale":
+            return panel_auth.verify_tailscale(request.client.host if request.client else None,
+                                               request.headers.get("Tailscale-User-Login"), cfg)
+        if cfg.mode != "basic" or cfg.require_strong:
+            raise panel_auth.PanelAuthError(403, "panel_auth_misconfigured")
+        return None
+    except panel_auth.PanelAuthError as exc:
+        log.warning("panel_access_denied", reason=exc.reason, path=request.url.path)
+        raise HTTPException(status_code=exc.status) from None
+
+
+def require_ceo(credentials: HTTPBasicCredentials = Depends(security),
+                identity: str | None = Depends(require_strong_identity)) -> str:
     pw = get_settings().dashboard_password
-    if pw and not (secrets.compare_digest(credentials.username, "ceo") and secrets.compare_digest(credentials.password, pw)):
+    if not pw or not pw.strip():  # nunca libera sem senha (a partida já recusa; isto cobre troca de config em execução)
+        raise HTTPException(status_code=503)
+    if not (secrets.compare_digest(credentials.username.encode(), b"ceo")
+            and secrets.compare_digest(credentials.password.encode(), pw.encode())):
         raise HTTPException(status_code=401, headers={"WWW-Authenticate": "Basic"})
-    return credentials.username
+    return identity or credentials.username
 
 
 async def _knowledge_autoingest() -> None:
@@ -52,6 +96,11 @@ async def _knowledge_autoingest() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import os
+    try:
+        enforce_panel_config()  # antes de tudo: sem senha válida a máquina não sobe (uvicorn sai com código ≠ 0)
+    except panel_auth.PanelConfigError as exc:
+        log.critical("panel_config_refused", reason=str(exc))
+        raise
     os.makedirs(os.environ.get("CLAUDE_CONFIG_DIR", "/app/state/claude"), exist_ok=True)  # sessões do SDK persistem no volume
     await db.pool()
     asyncio.create_task(_knowledge_autoingest(), name="knowledge_autoingest")
@@ -196,22 +245,48 @@ async def dubai_now() -> Response:
 
 
 # ───────────────────────── Pagamentos (webhooks dos gateways) ─────────────────────────
+PAID_EVENTS = ("checkout.session.completed", "payment_link.completed", "charge.succeeded")
+
+
+async def apply_stripe_event(payload: dict) -> tuple[bool, str | None, float]:
+    """Registra o evento e aplica o efeito na MESMA transação: (novo?, booking_id, valor). Reentrega → (False, …)."""
+    obj = (payload.get("data") or {}).get("object") or {}
+    ref = (obj.get("metadata") or {}).get("booking_ref") if payload.get("type") in PAID_EVENTS else None
+    amount = float(obj.get("amount_total") or obj.get("amount") or 0) / 100
+    p = await db.pool()
+    async with p.acquire() as con, con.transaction():
+        fresh = await con.fetchval(
+            """INSERT INTO payment_webhook_events (provider, event_id, event_type) VALUES ('stripe', $1, $2)
+               ON CONFLICT DO NOTHING RETURNING event_id""", payload["id"], payload.get("type"))
+        if not fresh:
+            return False, None, amount
+        if not ref:
+            return True, None, amount
+        b = await con.fetchrow(
+            """UPDATE bookings SET paid_usd = paid_usd + $2,
+                 payment_status = CASE WHEN paid_usd + $2 >= total_usd THEN 'paid' ELSE 'deposit' END
+               WHERE ref = $1 RETURNING id""", ref, amount)
+        return True, (str(b["id"]) if b else None), amount
+
+
 @app.post("/webhooks/stripe")
 async def stripe_webhook(request: Request) -> dict:
-    """Confirma pagamento → atualiza reserva e avisa o consultor para seguir com a confirmação."""
-    payload = await request.json()
-    if payload.get("type") in ("checkout.session.completed", "payment_link.completed", "charge.succeeded"):
-        obj = payload["data"]["object"]
-        ref = (obj.get("metadata") or {}).get("booking_ref")
-        amount = float(obj.get("amount_total") or obj.get("amount") or 0) / 100
-        if ref:
-            await db.execute(
-                """UPDATE bookings SET paid_usd = paid_usd + $2,
-                     payment_status = CASE WHEN paid_usd + $2 >= total_usd THEN 'paid' ELSE 'deposit' END
-                   WHERE ref = $1""", ref, amount)
-            from brain.core import bus, registry
-            b = await db.fetchrow("SELECT id FROM bookings WHERE ref = $1", ref)
-            if b:
-                await registry.get("finance").on_payment_event(str(b["id"]), amount, "charge")  # type: ignore[attr-defined]  # baixa a fatura (A/R)
-            await bus.publish(bus.TASKS, {"agent": "booking_payments", "task": "confirm_pending"})
+    """Confirma pagamento → atualiza reserva e avisa o consultor. Só processa depois de verificar a assinatura
+    (HMAC sobre o corpo bruto, tempo constante, janela de 300 s); cada evento é aplicado uma única vez."""
+    s = get_settings()
+    raw = await request.body()
+    try:
+        payload = payment_webhook.verify(raw, request.headers.get("Stripe-Signature"), s.stripe_webhook_secret,
+                                         s.payment_webhook_tolerance_s)
+    except payment_webhook.SignatureError as exc:
+        log.warning("payment_webhook_rejected", provider="stripe", reason=exc.reason)
+        raise HTTPException(exc.status) from None
+    fresh, booking_id, amount = await apply_stripe_event(payload)
+    if not fresh:
+        log.info("payment_webhook_duplicate", provider="stripe", event_id=payload["id"])
+        return {"ok": True, "duplicate": True}
+    if booking_id:
+        from brain.core import bus, registry
+        await registry.get("finance").on_payment_event(booking_id, amount, "charge")  # type: ignore[attr-defined]  # baixa a fatura (A/R)
+        await bus.publish(bus.TASKS, {"agent": "booking_payments", "task": "confirm_pending"})
     return {"ok": True}

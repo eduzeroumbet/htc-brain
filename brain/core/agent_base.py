@@ -22,7 +22,7 @@ from typing import Any, Iterable
 
 import structlog
 
-from brain.core import db
+from brain.core import db, guardrails
 from brain.core.prompts import render
 from brain.settings import budgets_config, get_settings
 
@@ -154,9 +154,17 @@ class BaseAgent:
             return None
 
     # ───────── gate de risco (Jev) ─────────
-    async def _pre_tool_use(self, input_data: dict[str, Any], tool_use_id: str | None, context: Any) -> dict[str, Any]:
-        """Hook PreToolUse do SDK: ferramentas em RISKY_TOOLS passam pelo Jev. block → nega; confirm → nega e pede decisão do CEO; allow → segue."""
+    async def _pre_tool_use(self, input_data: dict[str, Any], tool_use_id: str | None, context: Any,
+                            denied: Iterable[str] = ()) -> dict[str, Any]:
+        """Hook PreToolUse do SDK. 1) allowlist no servidor: ferramenta fora de `allowed` (inclusive as nativas do
+        Claude Code, liberadas por bypassPermissions) ou em `denied` → nega, com ou sem Jev. 2) RISKY_TOOLS passam
+        pelo Jev: block → nega; confirm → nega e pede decisão do CEO; allow → segue."""
         tool_name = input_data.get("tool_name", "")
+        reason = guardrails.tool_denied(tool_name, self.allowed, denied)
+        if reason:
+            log.warning("tool_denied", agent=self.name, tool=tool_name)
+            return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                    "permissionDecisionReason": reason}}
         if tool_name not in RISKY_TOOLS or not jev.enabled():
             return {}
         args = json.dumps(input_data.get("tool_input", {}), ensure_ascii=False, default=str)
@@ -186,6 +194,7 @@ class BaseAgent:
         resume_session: str | None = None,
         prompt_ctx: dict[str, Any] | None = None,
         delegated_by: str | None = None,
+        deny_tools: Iterable[str] = (),
     ) -> AgentResult:
         started = time.perf_counter()
         trace = None
@@ -210,12 +219,12 @@ class BaseAgent:
             import asyncio as _asyncio
             if SDK_AVAILABLE:
                 try:
-                    result = await _asyncio.wait_for(self._run_sdk(prompt, system, model, resume_session), timeout=self.timeout_s)
+                    result = await _asyncio.wait_for(self._run_sdk(prompt, system, model, resume_session, deny_tools), timeout=self.timeout_s)
                 except Exception as exc:  # noqa: BLE001
                     if resume_session and "No conversation found" in str(exc):
                         # sessão do SDK perdida (container recriado): recomeça sem contexto de sessão; o histórico vem do banco
                         log.warning("session_lost_retry", agent=self.name, session=resume_session)
-                        result = await _asyncio.wait_for(self._run_sdk(prompt, system, model, None), timeout=self.timeout_s)
+                        result = await _asyncio.wait_for(self._run_sdk(prompt, system, model, None, deny_tools), timeout=self.timeout_s)
                         result.session_lost = True
                     else:
                         raise
@@ -241,9 +250,16 @@ class BaseAgent:
             await self._lf(lambda: (trace.update(output=result.text[:2000], metadata={"cost_usd": result.cost_usd, "tools": result.tool_calls}), lf.flush()))
         return result
 
-    async def _run_sdk(self, prompt: str, system: str, model: str, resume_session: str | None) -> AgentResult:
+    async def _run_sdk(self, prompt: str, system: str, model: str, resume_session: str | None,
+                       deny_tools: Iterable[str] = ()) -> AgentResult:
         servers = self.tools()
-        hooks = {"PreToolUse": [HookMatcher(matcher=None, hooks=[self._pre_tool_use])]} if (HookMatcher and jev.enabled()) else None
+        denied = frozenset(deny_tools)   # por execução (o agente é compartilhado entre workers concorrentes)
+
+        async def pre_tool_use(input_data: dict[str, Any], tool_use_id: str | None, context: Any) -> dict[str, Any]:
+            return await self._pre_tool_use(input_data, tool_use_id, context, denied=denied)
+
+        # o hook roda sempre (allowlist no servidor); o gate do Jev dentro dele só age se o Jev estiver ligado
+        hooks = {"PreToolUse": [HookMatcher(matcher=None, hooks=[pre_tool_use])]} if HookMatcher else None
         options = ClaudeAgentOptions(
             system_prompt=system,
             model=model,

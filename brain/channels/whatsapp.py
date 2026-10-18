@@ -10,6 +10,7 @@ import structlog
 
 from brain.channels import delivery_failures
 from brain.core import bus, db
+from brain.core.retry import http_failure
 from brain.settings import get_settings
 
 log = structlog.get_logger(__name__)
@@ -117,5 +118,9 @@ async def send(event: dict[str, Any]) -> None:
             # janela de 24h fechada → precisa de template aprovado
             if "131047" in r.text or "131026" in r.text:
                 await db.execute("INSERT INTO agent_runs (agent, trigger, input_summary, status, error) VALUES ('_channels','send','whatsapp template_required','error',$1)", r.text[:500])
-            return
+            try:
+                code = (r.json().get("error") or {}).get("code")
+            except Exception:  # noqa: BLE001
+                code = None
+            raise http_failure("whatsapp", r.status_code, r.headers.get("Retry-After"), code)  # 5xx/429 → retry; 4xx → DLQ
         await bus.publish("delivery", {"channel": "whatsapp", "to": to, "id": r.json().get("messages", [{}])[0].get("id")})

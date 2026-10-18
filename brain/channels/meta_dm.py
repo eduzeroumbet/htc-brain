@@ -9,6 +9,7 @@ import httpx
 import structlog
 
 from brain.core import bus
+from brain.core.retry import http_failure
 from brain.settings import get_settings
 
 log = structlog.get_logger(__name__)
@@ -61,6 +62,7 @@ async def _send(recipient_id: str, text: str, platform: str) -> None:
                          json={"recipient": {"id": recipient_id}, "message": {"text": text[:2000]}, "messaging_type": "RESPONSE"})
         if r.status_code >= 400:
             log.error("meta_send_failed", platform=platform, status=r.status_code, body=r.text[:400])
+            raise http_failure(platform, r.status_code, r.headers.get("Retry-After"))  # 5xx/429 → retry; 4xx → DLQ
 
 
 async def send_messenger(event: dict[str, Any]) -> None:
