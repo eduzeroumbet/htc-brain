@@ -5,6 +5,8 @@ Streams:
   outbound  — respostas para enviar                             → consumidas pelo despachante de canais
   tasks     — tarefas para agentes (cron ou eventos)            → consumidas pelo orquestrador
   alerts    — avisos para o CEO                                 → consumidas pelo despachante (WhatsApp do CEO)
+  dlq       — eventos que esgotaram as tentativas (motivo, payload, tentativas, horários) → scripts/dlq.py
+  retry:<stream> (ZSET) — reentregas agendadas com backoff; o orquestrador as devolve ao stream quando vencem
 """
 from __future__ import annotations
 
@@ -70,6 +72,58 @@ async def consume(stream: str, group: str, consumer: str, block_ms: int = 2000) 
 
 async def ack(stream: str, group: str, msg_id: str) -> None:
     await client().xack(stream, group, msg_id)
+
+
+# ───────────────────────── retry agendado e DLQ (política em brain/core/retry.py) ─────────────────────────
+
+DLQ, DLQ_AUDIT = "dlq", "dlq:replayed"
+
+# move atomicamente os retries vencidos do ZSET para o stream (nem perde nem duplica se dois processos rodarem)
+_PUMP_LUA = """
+local items = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, tonumber(ARGV[2]))
+for _, m in ipairs(items) do
+  local sep = string.find(m, '|', 1, true)
+  redis.call('XADD', KEYS[2], 'MAXLEN', '~', 100000, '*', 'json', string.sub(m, sep + 1))
+  redis.call('ZREM', KEYS[1], m)
+end
+return #items
+"""
+# reprocessa uma entrada da DLQ uma única vez: só republica se ela ainda existia (XDEL devolveu 1)
+_REPLAY_LUA = """
+if redis.call('XDEL', KEYS[1], ARGV[1]) == 1 then
+  redis.call('XADD', KEYS[2], 'MAXLEN', '~', 100000, '*', 'json', ARGV[2])
+  redis.call('XADD', KEYS[3], 'MAXLEN', '~', 10000, '*', 'json', ARGV[3])
+  return 1
+end
+return 0
+"""
+
+
+async def schedule_retry(stream: str, event: dict[str, Any], delay_s: float) -> None:
+    """Agenda a reentrega (durável: ZSET no Redis com AOF). Chamar ANTES do ack da mensagem original."""
+    import time
+    import uuid
+    member = f"{uuid.uuid4().hex}|{json.dumps(event, ensure_ascii=False, default=str)}"
+    await client().zadd(f"retry:{stream}", {member: time.time() + delay_s})
+
+
+async def pump_retries(stream: str, limit: int = 100) -> int:
+    import time
+    return int(await client().eval(_PUMP_LUA, 2, f"retry:{stream}", stream, time.time(), limit))
+
+
+async def dead_letter(record: dict[str, Any]) -> str:
+    return await client().xadd(DLQ, {"json": json.dumps(record, ensure_ascii=False, default=str)}, maxlen=100_000)
+
+
+async def dlq_entries(count: int = 50) -> list[tuple[str, dict[str, Any]]]:
+    return [(i, json.loads(f["json"])) for i, f in await client().xrange(DLQ, count=count)]
+
+
+async def dlq_replay(dlq_id: str, event: dict[str, Any], stream: str, audit: dict[str, Any]) -> bool:
+    ok = await client().eval(_REPLAY_LUA, 3, DLQ, stream, DLQ_AUDIT, dlq_id,
+                             json.dumps(event, ensure_ascii=False, default=str), json.dumps(audit, default=str))
+    return bool(ok)
 
 
 # ───────────────────────── chaves auxiliares ─────────────────────────

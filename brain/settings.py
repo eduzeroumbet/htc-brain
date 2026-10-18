@@ -88,12 +88,31 @@ class Settings(BaseSettings):
     # CEO
     ceo_whatsapp: str = Field("", alias="CEO_WHATSAPP")
     ceo_email: str = Field("", alias="CEO_EMAIL")
-    dashboard_password: str = Field("", alias="DASHBOARD_PASSWORD")
+    dashboard_password: str = Field("", alias="DASHBOARD_PASSWORD")   # obrigatória: sem ela o processo não sobe
+
+    # painel: autenticação forte na frente do Basic (brain/core/panel_auth.py, docs/SEGURANCA_GATE_FASE2.md)
+    panel_auth_mode: str = Field("basic", alias="PANEL_AUTH_MODE")                    # basic | cloudflare | tailscale
+    panel_require_strong_auth: bool = Field(False, alias="PANEL_REQUIRE_STRONG_AUTH")  # true em produção após o Access
+    cf_access_team_domain: str = Field("", alias="CF_ACCESS_TEAM_DOMAIN")
+    cf_access_aud: str = Field("", alias="CF_ACCESS_AUD")
+    cf_access_jwks_url: str = Field("", alias="CF_ACCESS_JWKS_URL")
+    tailscale_allowed_logins: str = Field("", alias="TAILSCALE_ALLOWED_LOGINS")       # e-mails separados por vírgula
 
     # pagamentos
     stripe_secret_key: str = Field("", alias="STRIPE_SECRET_KEY")
-    stripe_webhook_secret: str = Field("", alias="STRIPE_WEBHOOK_SECRET")
+    stripe_webhook_secret: str = Field("", alias="STRIPE_WEBHOOK_SECRET")             # sem ele /webhooks/stripe recusa tudo
+    payment_webhook_tolerance_s: int = Field(300, alias="PAYMENT_WEBHOOK_TOLERANCE_SECONDS")
     tap_secret_key: str = Field("", alias="TAP_SECRET_KEY")
+
+    # fila: retry com backoff exponencial + jitter; esgotado → stream "dlq" (scripts/dlq.py reprocessa)
+    queue_max_attempts: int = Field(5, alias="QUEUE_MAX_ATTEMPTS")
+    queue_retry_base_delay_s: float = Field(2.0, alias="QUEUE_RETRY_BASE_DELAY_SECONDS")
+    queue_retry_max_delay_s: float = Field(600.0, alias="QUEUE_RETRY_MAX_DELAY_SECONDS")
+    queue_retry_jitter_ratio: float = Field(0.2, alias="QUEUE_RETRY_JITTER_RATIO")
+
+    # balcão de propostas: lease com fencing token
+    proposal_lease_ttl_s: int = Field(300, alias="PROPOSAL_LEASE_TTL_SECONDS")
+    proposal_lease_renew_s: int = Field(90, alias="PROPOSAL_LEASE_RENEW_INTERVAL_SECONDS")
 
     # segurança
     field_encryption_key: str = Field("", alias="FIELD_ENCRYPTION_KEY")

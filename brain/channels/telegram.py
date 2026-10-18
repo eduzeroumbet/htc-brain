@@ -7,6 +7,7 @@ import httpx
 import structlog
 
 from brain.core import bus
+from brain.core.retry import http_failure
 from brain.settings import get_settings
 
 log = structlog.get_logger(__name__)
@@ -44,3 +45,4 @@ async def send(event: dict[str, Any]) -> None:
             r = await c.post(api("sendMessage"), json={"chat_id": event["channel_user_id"], "text": event["text"][:4096], "disable_web_page_preview": False})
         if r.status_code >= 400:
             log.error("tg_send_failed", status=r.status_code, body=r.text[:400])
+            raise http_failure("telegram", r.status_code, r.headers.get("Retry-After"))  # 5xx/429 → retry; 4xx → DLQ
