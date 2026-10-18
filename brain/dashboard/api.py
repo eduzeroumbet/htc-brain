@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from brain.channels import delivery_failures as df
 from brain.core import bus, consent, db, registry
 from brain.settings import agency_config, budgets_config, markets_config
 
@@ -34,6 +35,12 @@ async def kpis(days: int = 30) -> dict[str, Any]:
         r["cac_usd"] = round(float(r["ad_spend_usd"] or 0) / b, 2) if b else None
         r["cac_target"] = budgets_config()["media"]["targets_usd"]["cac"].get(r["market_code"])
     return {"days": days, "daily": daily, "by_market": by_market, "previous": prev, "targets": targets}
+
+
+@router.get("/delivery_failures")
+async def delivery_failures(days: int = 30) -> dict[str, Any]:
+    """Falhas permanentes de entrega: 130497 (wa_country_restricted) e Brasil pausado (wa_br_paused_by_flag), cada um no seu contador."""
+    return await df.dashboard_counts(days)
 
 
 @router.get("/decisions")

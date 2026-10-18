@@ -17,7 +17,7 @@ from typing import Any
 import structlog
 
 from brain.channels import email as email_ch
-from brain.channels import meta_dm, telegram, webchat, whatsapp
+from brain.channels import delivery_failures, meta_dm, telegram, webchat, whatsapp
 from brain.core import consent
 
 log = structlog.get_logger(__name__)
@@ -39,5 +39,11 @@ async def dispatch(event: dict[str, Any]) -> None:
     if event.get("purpose") == "marketing" and not await consent.pode_enviar_marketing(event.get("lead_id"), event["channel"]):
         log.warning("marketing_blocked", lead_id=event.get("lead_id"), channel=event["channel"], author=event.get("author"),
                     template=bool(event.get("template")), reason="sem consentimento de marketing ativo")
+        return
+    if event["channel"] == "whatsapp" and delivery_failures.br_paused(event):
+        # Brasil pausado (WA_BR_DELIVERY_ENABLED=false): não chama a Graph API; registra e oferece outro canal
+        await delivery_failures.handle_permanent_failure(
+            category=delivery_failures.CAT_BR_PAUSED, source="guard", to=event["channel_user_id"],
+            ref=delivery_failures.outbound_ref(event), lead_id=event.get("lead_id"))
         return
     await sender(event)
