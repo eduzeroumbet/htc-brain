@@ -157,6 +157,11 @@ def alt_route_config() -> dict[str, Any]:
 
 
 @lru_cache
+def consent_config() -> dict[str, Any]:
+    return _load_yaml(CONFIG_DIR / "consent.yaml")
+
+
+@lru_cache
 def markets_config() -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for p in sorted((CONFIG_DIR / "markets").glob("*.yaml")):

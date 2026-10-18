@@ -8,7 +8,8 @@ Evento inbound padrão (publicado em bus.INBOUND):
 }
 
 Evento outbound: "purpose": "marketing" para follow-up, campanha e template promocional (exige "lead_id");
-sem "purpose" = transacional. Marketing só sai se consent.pode_enviar_marketing(lead, canal).
+"session_reply" para resposta de atendimento (livre só dentro da janela aberta pelo cliente); "transactional" ou sem "purpose"
+= transacional (config/consent.yaml: unclassified_purpose). O gate é consent.motivo_bloqueio(event) (RG-CONSENT-001).
 """
 from __future__ import annotations
 
@@ -36,9 +37,10 @@ async def dispatch(event: dict[str, Any]) -> None:
     sender = SENDERS.get(event["channel"])
     if not sender:
         raise ValueError(f"canal sem sender: {event['channel']}")
-    if event.get("purpose") == "marketing" and not await consent.pode_enviar_marketing(event.get("lead_id"), event["channel"]):
+    motivo = await consent.motivo_bloqueio(event)
+    if motivo:  # registro só com ids e motivo; nada de telefone, e-mail ou texto da mensagem
         log.warning("marketing_blocked", lead_id=event.get("lead_id"), channel=event["channel"], author=event.get("author"),
-                    template=bool(event.get("template")), reason="sem consentimento de marketing ativo")
+                    purpose=event.get("purpose") or "unclassified", template=bool(event.get("template")), reason=motivo)
         return
     if event["channel"] == "whatsapp" and delivery_failures.br_paused(event):
         # Brasil pausado (WA_BR_DELIVERY_ENABLED=false): não chama a Graph API; registra e oferece outro canal

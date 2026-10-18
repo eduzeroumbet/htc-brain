@@ -1,0 +1,22 @@
+# Regras do gate de marketing (brain/core/consent.py, chamado por channels.dispatch). Lidas na subida do cérebro (make restart).
+# RG-CONSENT-001: mensagem de marketing (ou de finalidade desconhecida) só sai com consentimento ativo e não revogado do lead
+# no canal. Um descadastro revoga o marketing do lead em todos os canais. Resposta dentro da janela de atendimento aberta pelo
+# próprio cliente e mensagem transacional não são marketing e não passam pelo bloqueio.
+# Mudar qualquer valor aqui é decisão de compliance (ponto de conferência jurídica no dossiê 7606d709), não ajuste técnico.
+
+# Escopo do descadastro: all_channels | same_channel.
+# all_channels: STOP/PARAR em um canal revoga o marketing do lead em todos os canais; só um novo opt-in explícito, por canal, reabre.
+revocation_scope: all_channels
+
+# Follow-up (e qualquer marketing) para lead sem consentimento ativo: block. Único valor aceito; outro valor é tratado como block.
+followups_without_active_consent: block
+
+# Resposta de atendimento (purpose: session_reply) dentro desta janela, contada da última mensagem do cliente no canal,
+# não é marketing. Fora da janela é contato proativo e passa pelo gate como marketing.
+transactional_window_reply: non_marketing
+session_window_hours: 24
+
+# Envio sem "purpose": transactional (comportamento atual) | marketing.
+# Mantido transactional porque vouchers, cobranças, avisos à equipe de campo e e-mails B2B saem hoje sem "purpose";
+# trocar para marketing só depois de classificar todos esses envios.
+unclassified_purpose: transactional
