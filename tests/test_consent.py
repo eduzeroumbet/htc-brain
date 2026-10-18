@@ -155,8 +155,13 @@ class FakeStore:
         self.marketing[(lead_id, canal)] = "revoked"
         return True
 
-    async def pode_enviar_marketing(self, lead_id: str | None, canal: str) -> bool:
-        return bool(lead_id) and self.marketing.get((lead_id, canal)) == "active"  # type: ignore[arg-type]
+    async def motivo_bloqueio_marketing(self, lead_id: str | None, canal: str) -> str | None:
+        if not lead_id:
+            return "sem_lead"
+        return {None: "sem_registro_de_consentimento", "revoked": "consentimento_revogado"}.get(self.marketing.get((lead_id, canal)))
+
+    async def dentro_da_janela(self, lead_id: str | None, canal: str, horas: int) -> bool:
+        return False
 
     async def abrir_dsar(self, lead_id: str, canal: str, requester: str, texto: str, **kw: Any) -> dict[str, Any]:
         if lead_id in self.dsar:
@@ -179,7 +184,7 @@ def store(monkeypatch: pytest.MonkeyPatch) -> FakeStore:
     s = FakeStore()
     for name in ("upsert_lead", "fetchrow", "open_conversation", "log_message"):
         monkeypatch.setattr(orchestrator.db, name, getattr(s, name))
-    for name in ("revogar_marketing", "pode_enviar_marketing", "abrir_dsar"):
+    for name in ("revogar_marketing", "motivo_bloqueio_marketing", "dentro_da_janela", "abrir_dsar"):
         monkeypatch.setattr(consent, name, getattr(s, name))
     monkeypatch.setattr(orchestrator.bus, "publish", s.publish)
 
@@ -331,3 +336,280 @@ async def test_followup_marca_marketing_e_respeita_a_guarda(store: FakeStore, mo
     store.marketing[("L1", "whatsapp")] = "revoked"
     await agent.followup("L1", "D+7")
     assert store.outbound == []  # nem chega a gerar a mensagem
+
+    store.marketing.clear()  # leads.consent_marketing = true, mas nenhuma linha no consent_log
+    await agent.followup("L1", "D+1")
+    assert store.outbound == []
+
+
+# ───────────────────────── RG-CONSENT-001: escopo da revogação e follow-ups (config/consent.yaml) ─────────────────────────
+# Gate real (motivo_bloqueio, revogar_marketing) sobre um consent_log em memória. Casos T1–T12 da decisão da etapa 3.
+
+T0 = datetime(2026, 10, 1, tzinfo=timezone.utc)
+
+
+class FakeConsentLog:
+    """consent_log, janela de atendimento e conexão do banco em memória; entende só as consultas de brain/core/consent.py."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.janela: set[tuple[str, str]] = set()   # (lead, canal) com mensagem do cliente dentro da janela
+        self.agora = T0
+        self.locks: list[str] = []
+        self.sent: list[dict[str, Any]] = []
+
+    def add(self, lead: str, canal: str, dia: int = 0, revogado_dia: int | None = None) -> None:
+        self.rows.append({"id": len(self.rows) + 1, "lead_id": lead, "channel": canal, "recorded_at": T0 + timedelta(days=dia),
+                          "status": "active" if revogado_dia is None else "revoked",
+                          "revoked_at": None if revogado_dia is None else T0 + timedelta(days=revogado_dia)})
+
+    def _do_lead(self, lead: str) -> list[dict[str, Any]]:
+        return sorted((r for r in self.rows if r["lead_id"] == lead), key=lambda r: (r["recorded_at"], r["id"]), reverse=True)
+
+    def estado(self, lead: str) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for r in self._do_lead(lead):
+            out.setdefault(r["channel"], r["status"])  # linha mais recente de cada canal
+        return out
+
+    # brain.core.db
+    async def fetch(self, sql: str, lead: str) -> list[dict[str, Any]]:
+        assert "FROM consent_log" in sql and "purpose = 'marketing'" in sql
+        return [dict(r) for r in self._do_lead(lead)]
+
+    async def fetchrow(self, sql: str, lead: str, canal: str, *a: Any) -> dict[str, Any] | None:
+        if "FROM messages" in sql:
+            return {"aberta": (lead, canal) in self.janela}
+        return next((dict(r) for r in self._do_lead(lead) if r["channel"] == canal), None)  # linha vigente do canal
+
+    async def execute(self, sql: str, *a: Any) -> str:
+        if "pg_advisory_xact_lock" in sql:
+            self.locks.append(a[0])
+            return "SELECT 1"
+        if sql.startswith("UPDATE leads"):
+            return "UPDATE 1"
+        if sql.lstrip().startswith("INSERT INTO consent_log"):
+            self.rows.append({"id": len(self.rows) + 1, "lead_id": a[0], "channel": a[1], "recorded_at": self.agora,
+                              "status": "revoked", "revoked_at": self.agora})
+            return "INSERT 0 1"
+        if "channel <> $2" in sql:  # all_channels: demais canais ativos do lead
+            alvo = [r for r in self.rows if r["lead_id"] == a[0] and r["channel"] != a[1] and r["status"] == "active"]
+        else:
+            alvo = [r for r in self.rows if r["id"] == a[0]]
+        for r in alvo:
+            r.update(status="revoked", revoked_at=self.agora)
+        return f"UPDATE {len(alvo)}"
+
+    def transaction(self) -> "FakeConsentLog":
+        return self
+
+    def acquire(self) -> "FakeConsentLog":
+        return self
+
+    async def __aenter__(self) -> "FakeConsentLog":
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        return None
+
+    async def pool(self) -> "FakeConsentLog":
+        return self
+
+
+@pytest.fixture
+def clog(monkeypatch: pytest.MonkeyPatch) -> FakeConsentLog:
+    from brain import channels
+
+    f = FakeConsentLog()
+    for name in ("fetch", "fetchrow", "execute", "pool"):
+        monkeypatch.setattr(consent.db, name, getattr(f, name))
+
+    async def fake_send(event: dict[str, Any]) -> None:
+        f.sent.append(event)
+
+    for canal in ("whatsapp", "email", "messenger", "instagram"):
+        monkeypatch.setitem(channels.SENDERS, canal, fake_send)
+    return f
+
+
+def _cfg(monkeypatch: pytest.MonkeyPatch, **over: Any) -> None:
+    from brain.settings import consent_config
+
+    base = dict(consent_config())
+    monkeypatch.setattr(consent, "consent_config", lambda: {**base, **over})
+
+
+def _mk(lead: str | None, canal: str = "whatsapp", **extra: Any) -> dict[str, Any]:
+    ev = {"channel": canal, "channel_user_id": "u1", "text": "Oferta Dubai", "lead_id": lead, "purpose": "marketing", **extra}
+    return {k: v for k, v in ev.items() if v is not None}
+
+
+def test_config_consent_yaml_tem_as_decisoes_conservadoras() -> None:
+    from brain.settings import consent_config
+
+    cfg = consent_config()
+    assert cfg["revocation_scope"] == "all_channels"
+    assert cfg["followups_without_active_consent"] == "block"
+    assert cfg["transactional_window_reply"] == "non_marketing" and cfg["session_window_hours"] == 24
+    assert cfg["unclassified_purpose"] == "transactional"
+    assert consent.regras() == cfg
+
+
+def test_config_invalida_cai_no_padrao_conservador(monkeypatch: pytest.MonkeyPatch) -> None:
+    _cfg(monkeypatch, revocation_scope="por_canal", followups_without_active_consent="allow", session_window_hours="x",
+         unclassified_purpose="talvez")
+    r = consent.regras()
+    assert r["revocation_scope"] == "all_channels"
+    assert r["followups_without_active_consent"] == "block"
+    assert r["session_window_hours"] == 24
+    assert r["unclassified_purpose"] == "transactional"
+
+
+async def test_t1_lead_sem_registro_bloqueia_e_registra_sem_dados_pessoais(clog: FakeConsentLog) -> None:
+    from structlog.testing import capture_logs
+
+    from brain.channels import dispatch
+
+    with capture_logs() as logs:
+        await dispatch({**_mk("L1"), "channel_user_id": "971585153946", "phone": "+971585153946"})
+    assert clog.sent == []
+    [rec] = [e for e in logs if e["event"] == "marketing_blocked"]
+    assert rec["reason"] == "sem_registro_de_consentimento" and rec["lead_id"] == "L1" and rec["channel"] == "whatsapp"
+    assert not {"channel_user_id", "phone", "text", "email"} & set(rec)
+    assert "971585153946" not in str(rec)
+
+
+async def test_marketing_sem_lead_bloqueia(clog: FakeConsentLog) -> None:
+    assert await consent.motivo_bloqueio(_mk(None)) == "sem_lead"
+
+
+async def test_t2_consentimento_ativo_no_canal_sai(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.add("L2", "whatsapp")
+    await dispatch(_mk("L2"))
+    assert len(clog.sent) == 1
+
+
+async def test_t3_consentimento_so_no_whatsapp_nao_vale_no_messenger(clog: FakeConsentLog) -> None:
+    clog.add("L3", "whatsapp")
+    assert await consent.motivo_bloqueio(_mk("L3", "messenger")) == "sem_registro_de_consentimento"
+
+
+async def test_t4_stop_no_whatsapp_revoga_todos_os_canais(clog: FakeConsentLog) -> None:
+    clog.add("L4", "whatsapp")
+    clog.add("L4", "email")
+    clog.add("L5", "email")  # outro lead não é afetado
+    clog.agora = T0 + timedelta(days=5)
+    assert await consent.revogar_marketing("L4", "whatsapp", texto="STOP") is True
+    assert clog.estado("L4") == {"whatsapp": "revoked", "email": "revoked"}
+    assert clog.estado("L5") == {"email": "active"}
+    assert clog.locks == ["consent:L4"]  # trava por lead: STOP simultâneo em dois canais não corre
+    assert await consent.revogar_marketing("L4", "whatsapp", texto="STOP") is False  # idempotente
+    assert await consent.revogar_marketing("L4", "email", texto="STOP") is False
+
+
+async def test_t4b_stop_sem_registro_no_canal_grava_prova_e_revoga_os_outros(clog: FakeConsentLog) -> None:
+    clog.add("L4", "email")
+    clog.agora = T0 + timedelta(days=5)
+    assert await consent.revogar_marketing("L4", "whatsapp", texto="PARAR") is True
+    assert clog.estado("L4") == {"email": "revoked", "whatsapp": "revoked"}
+
+
+async def test_t5_t6_apos_descadastro_marketing_bloqueado_no_canal_e_em_outro(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.add("L4", "whatsapp")
+    clog.add("L4", "email")
+    clog.agora = T0 + timedelta(days=5)
+    await consent.revogar_marketing("L4", "whatsapp", texto="STOP")
+    await dispatch(_mk("L4", "whatsapp"))                                 # T5
+    await dispatch(_mk("L4", "email", template={"name": "promo_dubai"}))  # T6
+    assert clog.sent == []
+    assert await consent.motivo_bloqueio(_mk("L4", "email")) == "consentimento_revogado"
+
+
+async def test_t6b_revogacao_em_outro_canal_bloqueia_mesmo_com_linha_ativa(clog: FakeConsentLog) -> None:
+    clog.add("L4", "email", dia=0)                      # opt-in no e-mail
+    clog.add("L4", "whatsapp", dia=1, revogado_dia=5)   # STOP no WhatsApp depois do opt-in do e-mail (linha antiga, carga, corrida)
+    assert await consent.motivo_bloqueio(_mk("L4", "email")) == "revogado_em_outro_canal"
+    clog.rows[0].update(status="revoked", revoked_at=T0 + timedelta(days=5))
+    clog.add("L4", "email", dia=6)                      # novo opt-in explícito no e-mail, depois do STOP
+    assert await consent.motivo_bloqueio(_mk("L4", "email")) is None
+    assert await consent.motivo_bloqueio(_mk("L4", "whatsapp")) == "consentimento_revogado"  # o WhatsApp segue revogado
+
+
+async def test_same_channel_revoga_so_o_canal(clog: FakeConsentLog, monkeypatch: pytest.MonkeyPatch) -> None:
+    _cfg(monkeypatch, revocation_scope="same_channel")
+    clog.add("L4", "whatsapp")
+    clog.add("L4", "email")
+    clog.agora = T0 + timedelta(days=5)
+    assert await consent.revogar_marketing("L4", "whatsapp", texto="STOP") is True
+    assert clog.estado("L4") == {"whatsapp": "revoked", "email": "active"}
+    assert clog.locks == ["consent:L4:whatsapp"]
+    assert await consent.motivo_bloqueio(_mk("L4", "email")) is None
+    assert await consent.motivo_bloqueio(_mk("L4", "whatsapp")) == "consentimento_revogado"
+
+
+async def test_t7_transacional_sai_mesmo_apos_descadastro(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.add("L4", "whatsapp", revogado_dia=5)
+    await dispatch(_mk("L4", purpose="transactional", text="Sua proposta solicitada"))
+    assert [e["text"] for e in clog.sent] == ["Sua proposta solicitada"]
+
+
+async def test_t8_resposta_dentro_da_janela_sai_sem_consentimento(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.janela.add(("L5", "whatsapp"))
+    await dispatch(_mk("L5", purpose="session_reply", text="Claro, seguem as opções"))
+    assert len(clog.sent) == 1
+
+
+async def test_resposta_fora_da_janela_vira_marketing(clog: FakeConsentLog) -> None:
+    assert await consent.motivo_bloqueio(_mk("L5", purpose="session_reply")) == "fora_da_janela_sem_registro_de_consentimento"
+    clog.add("L5", "whatsapp")
+    assert await consent.motivo_bloqueio(_mk("L5", purpose="session_reply")) is None  # fora da janela, mas com opt-in ativo
+
+
+async def test_janela_aberta_nao_libera_marketing(clog: FakeConsentLog) -> None:
+    clog.janela.add(("L5", "whatsapp"))
+    assert await consent.motivo_bloqueio(_mk("L5")) == "sem_registro_de_consentimento"
+
+
+@pytest.mark.skip(reason="T9 pendente: consent_log não tem expires_at e o esquema não muda nesta entrega; prazo de expiração "
+                         "vai ao advogado (dossiê 7606d709)")
+async def test_t9_consentimento_expirado_bloqueia() -> None:
+    raise AssertionError
+
+
+async def test_t10_sem_purpose_segue_a_config(clog: FakeConsentLog, monkeypatch: pytest.MonkeyPatch) -> None:
+    sem_purpose = {"channel": "whatsapp", "channel_user_id": "u1", "text": "Oi", "lead_id": "L7"}
+    assert await consent.motivo_bloqueio(sem_purpose) is None  # padrão atual: transacional
+    _cfg(monkeypatch, unclassified_purpose="marketing")
+    assert await consent.motivo_bloqueio(sem_purpose) == "sem_registro_de_consentimento"
+
+
+async def test_finalidade_desconhecida_e_tratada_como_marketing(clog: FakeConsentLog) -> None:
+    assert await consent.motivo_bloqueio(_mk("L7", purpose="promo")) == "sem_registro_de_consentimento"
+
+
+async def test_t11_followup_fora_da_janela_com_consentimento_ativo_sai(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.add("L8", "whatsapp")
+    await dispatch(_mk("L8", template={"name": "followup_d3"}, template_required=True))
+    assert len(clog.sent) == 1
+
+
+async def test_t12_descadastrado_reabre_contato_resposta_sai_followup_nao(clog: FakeConsentLog) -> None:
+    from brain.channels import dispatch
+
+    clog.add("L9", "whatsapp")
+    clog.agora = T0 + timedelta(days=2)
+    await consent.revogar_marketing("L9", "whatsapp", texto="STOP")
+    clog.janela.add(("L9", "whatsapp"))  # cliente volta pedindo orçamento
+    await dispatch(_mk("L9", purpose="session_reply", text="Segue o orçamento"))
+    await dispatch(_mk("L9", text="Que tal um jantar no deserto?"))  # follow-up promocional sem novo opt-in
+    assert [e["text"] for e in clog.sent] == ["Segue o orçamento"]

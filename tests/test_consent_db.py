@@ -101,6 +101,45 @@ async def test_transacional_nao_e_afetado(pg: asyncpg.Connection) -> None:
     assert await pg.fetchval("SELECT status FROM consent_log WHERE lead_id = $1 AND purpose = 'transactional'", lid) == "active"
 
 
+async def test_descadastro_all_channels_revoga_todos_os_canais_e_novo_optin_reabre_so_o_canal(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    for canal in ("whatsapp", "email", "instagram"):
+        await consent.registrar_consentimento(lid, canal, texto="Aceito receber ofertas", idioma="pt")
+    assert await consent.revogar_marketing(lid, "whatsapp", texto="STOP") is True
+    assert await pg.fetchval("SELECT count(*) FROM consent_log WHERE lead_id = $1 AND status = 'active' AND purpose = 'marketing'", lid) == 0
+    assert await consent.motivo_bloqueio({"channel": "email", "lead_id": lid, "purpose": "marketing"}) == "consentimento_revogado"
+    assert await consent.revogar_marketing(lid, "email", texto="STOP") is False  # nada mais a revogar
+
+    await consent.registrar_consentimento(lid, "email", texto="Quero voltar a receber por e-mail", idioma="pt")
+    assert await consent.pode_enviar_marketing(lid, "email") is True
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is False
+    assert await consent.pode_enviar_marketing(lid, "instagram") is False
+
+
+async def test_revogacao_em_outro_canal_bloqueia_linha_ativa_mais_antiga(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "email", texto="Aceito", idioma="pt")
+    await pg.execute("UPDATE consent_log SET recorded_at = now() - interval '2 days' WHERE lead_id = $1", lid)
+    await pg.execute("""INSERT INTO consent_log (lead_id, channel, recorded_at, consent_text, consent_version, source, purpose, status, revoked_at)
+                        VALUES ($1, 'whatsapp', now() - interval '1 day', 'STOP', 'v1', 'whatsapp_keyword', 'marketing', 'revoked', now() - interval '1 day')""", lid)
+    assert await consent.motivo_bloqueio_marketing(lid, "email") == "revogado_em_outro_canal"
+
+
+async def test_janela_de_atendimento_pela_ultima_mensagem_do_cliente(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    ev = {"channel": "whatsapp", "lead_id": lid, "purpose": "session_reply"}
+    assert await consent.motivo_bloqueio(ev) == "fora_da_janela_sem_registro_de_consentimento"
+    conv = await pg.fetchval("INSERT INTO conversations (lead_id, channel) VALUES ($1, 'whatsapp') RETURNING id", lid)
+    await pg.execute("INSERT INTO messages (conversation_id, direction, author, body, created_at) VALUES ($1, 'in', 'client', 'oi', now() - interval '25 hours')", conv)
+    await pg.execute("INSERT INTO messages (conversation_id, direction, author, body) VALUES ($1, 'out', 'ai:consultant', 'olá')", conv)
+    assert await consent.dentro_da_janela(lid, "whatsapp", 24) is False  # mensagem nossa não abre janela
+    await pg.execute("INSERT INTO messages (conversation_id, direction, author, body) VALUES ($1, 'in', 'client', 'quero um orçamento')", conv)
+    assert await consent.dentro_da_janela(lid, "whatsapp", 24) is True
+    assert await consent.dentro_da_janela(lid, "email", 24) is False
+    assert await consent.motivo_bloqueio(ev) is None
+    assert await consent.motivo_bloqueio({**ev, "purpose": "marketing"}) == "sem_registro_de_consentimento"
+
+
 async def test_constraint_status_e_revoked_at(pg: asyncpg.Connection) -> None:
     lid = await _lead(pg)
     with pytest.raises(asyncpg.CheckViolationError):
