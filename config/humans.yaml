@@ -1,0 +1,57 @@
+# Os humanos que continuam na operação e como a máquina fala com eles.
+# Nenhum destes papéis usa escritório fixo; tudo passa pelo número de WhatsApp de campo da máquina.
+
+field_whatsapp_env: FIELD_WHATSAPP_NUMBER_ID     # segundo número (Cloud API) só para motoristas, guias e fornecedores
+
+drivers:
+  - id: drv_abdul
+    name: "Abdul Rehman"
+    role: "Chauffeur e apoio de frota"
+    whatsapp_env: DRIVER_ABDUL_WHATSAPP
+    languages: [en, ur, hi]
+    max_hours_per_day: 12          # manual de RH 2.1.1
+    days_off_per_month: 4
+    extra_hour_rate_aed: 35        # manual de RH 3.5 (fora do horário)
+    default_vehicle: escalade_2023
+  - id: drv_mumtaz
+    name: "Mumtaz Khokhar"
+    role: "Chauffeur"
+    whatsapp_env: DRIVER_MUMTAZ_WHATSAPP
+    languages: [en, ur]
+    max_hours_per_day: 12
+    days_off_per_month: 4
+    extra_hour_rate_aed: 35
+    default_vehicle: yukon_2025
+
+driver_checklist_before_service:              # organograma / manual: procedimentos do motorista
+  - "Combustível, água, lenços, higienizador de mãos e cabo de carregador no carro"
+  - "Uniforme passado; higiene pessoal"
+  - "Confirmar hora e ponto de encontro pelo botão 'a caminho' 60 min antes"
+  - "Foto do odômetro no início e fim do dia"
+  - "Tax invoice de qualquer despesa da empresa"
+
+guides_translators:
+  source: "freelancers licenciados; TGD gerado por reserva"
+  languages_pool: [pt, en, es, ar, ru, de, hi, fr, it]
+  briefing_fields: [client_profile, languages, restrictions, special_requests, itinerary, vouchers, abaya_needed, vip_flag]
+  end_of_tour_report: "3 linhas: como foi, extras vendidos, algo a corrigir"
+  abaya_rule: "Mesquita Sheikh Zayed → abaya HCTE entregue ao guia e devolvida à lavanderia com registro"
+
+resolution_staff:                             # "suporte avançado" presencial: recebe a programação de resolução pelo WhatsApp (tools/resolution.py)
+  - { id: ops_resolver_1, name: "A DEFINIR (ex-CS&Ops)", whatsapp_env: RESOLVER_1_WHATSAPP, languages: [en, pt, ar], coverage: "Dubai e Abu Dhabi, 08:00–22:00" }
+  - { id: ops_resolver_2, name: "A DEFINIR (plantão noturno)", whatsapp_env: RESOLVER_2_WHATSAPP, languages: [en, ar], coverage: "22:00–08:00, só critical" }
+
+advanced_support:
+  rotation: "semanal, troca segunda-feira"
+  roster:
+    - { id: ceo, name: "Larissa Wilson", whatsapp_env: CEO_WHATSAPP }
+    - { id: senior_ops, name: "A DEFINIR", whatsapp_env: SENIOR_OPS_WHATSAPP }
+  triggers_only: true                           # só os gatilhos de config/escalation.yaml chamam o plantão
+  target_max_cases_per_day: 2
+  sla_minutes_by_severity: { critical: 0, high: 60, medium: 240 }
+
+external_partners:                              # continuam externos; a máquina prepara e envia
+  accountants: { role: "contabilidade e VAT", cadence: "mensal, fechamento no dia 1" }
+  pro: { role: "vistos e labour dos motoristas", cadence: "sob evento" }
+  lawyers: { role: "trabalhista e casos em andamento", cadence: "sob evento" }
+  laundry: { role: "abayas", cadence: "após cada devolução" }

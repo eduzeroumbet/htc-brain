@@ -1,0 +1,10 @@
+# Copie para terraform.tfvars e preencha. NUNCA comite terraform.tfvars.
+region         = "eu-west-1"
+instance_type  = "m6i.2xlarge"
+disk_gb        = 300
+domain         = "brain.highclass.you"
+ssh_public_key = "ssh-ed25519 AAAA... edu@mac"     # cat ~/.ssh/id_ed25519.pub
+admin_cidr     = "203.0.113.10/32"                 # curl -s ifconfig.me  → acrescente /32
+operator_email = "edu@zeroum.bet"
+# tailscale_auth_key = "tskey-auth-..."            # recomendado: fecha o SSH público
+# repo_url = "https://<token>@github.com/<org>/dubai-ai-agency.git"   # ou envie o zip por scp

@@ -1,0 +1,3 @@
+sku,kind,name,supplier_name,net_price_usd,markup_pct,price_basis,nights,star_rating,location,suitable_for,markets,cancellation_hours,seasonality_json,description_pt,description_en,description_ar
+HTL-EXEMPLO-4,hotel,Hotel 4★ exemplo,DMC Parceira,95,14,per_room_night,,4,JBR,"family;budget",,72,"{""2026-12-20/2027-01-05"":1.35}",Descrição em português,English description,وصف بالعربية
+EXP-EXEMPLO,experience,Experiência exemplo,Rayna Tours,48,18,per_person,,,Downtown,"honeymoon;family",,48,{},Descrição,Description,وصف

@@ -1,0 +1,43 @@
+# Regras de sourcing extraídas do treinamento "Attractions & Experiences" (20/05/2026) e da prática da HCTE.
+# Credenciais dos portais NÃO ficam aqui: vão para o cofre e para o .env (SUPPLIER_<NOME>_*).
+# O agente Fornecedores & Preços aplica estas prioridades; o consultor só vê o melhor preço do catálogo.
+
+sourcing_priority:
+  tickets_experiences:
+    - { rank: 1, rule: "Atrações com contrato direto (portal de agente Emaar: At the Top, Dubai Aquarium, Dubai Ice Rink, KidZania; demais contratadas)" }
+    - { rank: 2, rule: "Turning Point Tourism ou Connect World (B2B) — comparar os dois" }
+    - { rank: 3, rule: "Elevate ou Passage to Arabia (B2B)" }
+  hotels:
+    - { rank: 1, rule: "Direto com o hotel em tarifa contratada (departamento de vendas do hotel)" }
+    - { rank: 2, rule: "Elevate" }
+    - { rank: 3, rule: "Travolgo" }
+    - { rank: 4, rule: "Desert Gate ou Turning Point Tourism" }
+    - { rank: 99, rule: "Sempre comparar com o site do hotel e Booking.com; se um intermediário estiver mais barato que o contratado, tentar negociar direto com o hotel antes de reservar" }
+  disney: "Al Tayer (Disney Paris, Disney Cruise Line, Walt Disney World)"
+  gcc_partners:
+    SA: { name: "Zahid Travel", note: "sem portal; e-mail/WhatsApp" }
+    OM: { name: "Abundance Tourism", note: "sem portal; e-mail/WhatsApp" }
+    QA: { name: "Tawfeeq Holidays", note: "sem portal; e-mail/WhatsApp" }
+
+suppliers:
+  - { id: turning_point, name: "Turning Point Tourism", kind: dmc, channel: b2b_portal, portal: "tpb2b.com", contact_channel: "grupo de WhatsApp 'High Class // Turning Point'", credentials_env: SUPPLIER_TURNINGPOINT }
+  - { id: connect_world, name: "Connect World Tours", kind: dmc, channel: b2b_portal, portal: "b2b.choosenfly.com", contact_channel: "grupo de WhatsApp 'High Class | Connect World'", credentials_env: SUPPLIER_CONNECTWORLD }
+  - { id: elevate, name: "Elevate", kind: dmc, channel: b2b_portal, credentials_env: SUPPLIER_ELEVATE }
+  - { id: passage_to_arabia, name: "Passage to Arabia", kind: dmc, channel: b2b_portal, portal: "b2b.passage2arabia.com", credentials_env: SUPPLIER_P2A }
+  - { id: travolgo, name: "Travolgo", kind: hotel_wholesaler, channel: b2b_portal, credentials_env: SUPPLIER_TRAVOLGO }
+  - { id: desert_gate, name: "Desert Gate", kind: dmc, channel: b2b_portal, credentials_env: SUPPLIER_DESERTGATE }
+  - { id: emaar_agent, name: "Emaar Entertainment — portal de agente", kind: attraction_direct, channel: agent_portal, portal: "tickets.atthetop.ae/agentportal", products: ["Burj Khalifa At the Top", "Dubai Aquarium & Underwater Zoo", "Dubai Ice Rink", "KidZania"], credentials_env: SUPPLIER_EMAAR }
+  - { id: al_tayer_disney, name: "Al Tayer (Disney)", kind: wholesaler, channel: email }
+  - { id: zahid, name: "Zahid Travel (Arábia Saudita)", kind: gcc_partner, channel: email_whatsapp }
+  - { id: abundance, name: "Abundance Tourism (Omã)", kind: gcc_partner, channel: email_whatsapp }
+  - { id: tawfeeq, name: "Tawfeeq Holidays (Catar)", kind: gcc_partner, channel: email_whatsapp }
+  - { id: swiss_yachts, name: "Swiss Yachts", kind: experience, channel: email_whatsapp }
+  - { id: xclusive_yachts, name: "Xclusive Yachts", kind: experience, channel: email_whatsapp }
+  - { id: own_fleet, name: "Frota própria HCTE", kind: transfer, channel: internal, vehicles: [escalade_2023, yukon_2025, gac_m8_2026] }
+
+comparison_rule:
+  min_sources_per_item: 2                 # nunca cotar com uma fonte só (exceto contrato direto)
+  refresh_days: 14                        # tarifa com mais de 14 dias volta para verificação
+  seasonal_recheck: ["2026-12-15/2027-01-10", "Eid al-Fitr", "Eid al-Adha", "half-term UK"]
+
+confirmation_sla_minutes: 120

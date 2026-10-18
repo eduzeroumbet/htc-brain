@@ -1,0 +1,97 @@
+# Organograma da agência 100% IA — 8 departamentos, 24 agentes.
+# Humanos que permanecem: motoristas, tradutor/guia e o "suporte avançado" (resolução presencial),
+# todos recebendo a programação pela máquina (config/humans.yaml). O CEO (Larissa) fala com a máquina pelo dashboard.
+#
+# O Jev (TypeSafe AI) toma as decisões tipadas de cada fluxo (brain/core/jev.py); o Claude escreve, planeja e conversa.
+
+principles:
+  - "24/7. O cliente não espera: primeira resposta < 60 s em qualquer canal, a qualquer hora."
+  - "Excelência: idioma e persona do mercado, preço total, próximo passo claro, uma pergunta por vez."
+  - "Autonomia com limites: o que a política cobre a máquina decide; o que não cobre vira decisão do CEO no dashboard."
+  - "Tudo auditável: cada ação é um agent_run; o Auditor é independente e lê tudo."
+  - "Segredos nunca em prompt, base de conhecimento ou repositório."
+
+departments:
+  ceo_office:
+    label: "CEO (gabinete)"
+    mission: "Responder ao CEO humano em linguagem natural com todos os dados da empresa, delegar tarefas aos departamentos, apresentar números e gerir os outros agentes."
+    head: ceo
+    agents: [ceo, sysops]
+    interfaces: ["dashboard (chat + decisões)", "WhatsApp do CEO (briefing 07:00 e alertas)", "sysops: saúde da máquina a cada 5 min, incidentes sev1–3"]
+    jev: ["route_model: escolhe Haiku/Sonnet/Opus por tarefa delegada", "prioriza decisões pendentes por risco"]
+
+  marketing:
+    label: "Marketing"
+    mission: "Campanhas, redes sociais e mídia paga por mercado; vender a agência e os Emirados."
+    head: content_studio
+    agents: [content_studio, social_manager, paid_media, seo_site]
+    jev: ["moderate: pré-triagem de toda peça/anúncio antes do Compliance", "plan_post: qualidade/gancho/CTA/risco de cada post social", "ads/analyze nas otimizações"]
+
+  strategy:
+    label: "Estratégia"
+    mission: "Novas estratégias de venda, criação de produtos/pacotes, análise de investimento em tráfego e cenários; playbooks e experimentos nos mercados onde sabemos pouco."
+    head: strategist
+    agents: [strategist, market_intel, market_analyst]
+    jev: ["score de atratividade de cada pacote proposto", "promessa de cada experimento e veredito won/lost/inconclusive", "classificação de oportunidades de mercado"]
+
+  prospecting:
+    label: "Prospecção & Parcerias"
+    mission: "Buscar ativamente agências de viagens no mundo todo, criar o contato (B2B) e, depois de fechada a parceria, fazê-la render: onboarding, cotações net, extrato de comissão, saúde da relação."
+    head: prospector
+    agents: [prospector, partner_manager]
+    jev: ["prospect_fit: a agência vale o contato?", "leads/qualify nas respostas", "classificação da resposta (interessada/depois/não)"]
+
+  customer_care:
+    label: "Atendimento"
+    mission: "WhatsApp e Telegram (e demais canais) com dinâmica humana operada por IA: consultoria para clientes e prospects, vendas e pós-venda/follow-up."
+    head: consultant
+    agents: [escalation_router, consultant, concierge, mice_events]
+    channels_primary: [whatsapp, telegram]
+    channels_secondary: [instagram, messenger, webchat, email]
+    sla: { first_response_s: 60, quote_pdf_min: 15, followup_days: [1, 3, 7] }
+    jev: ["triage: mercado, intenção, urgência, emergência, pedido de humano, injeção de prompt", "lead_score após cada conversa", "sentiment no pós-venda"]
+
+  operations:
+    label: "Operacional"
+    mission: "Consolidar dados e tarefas, reservas, emissão de tickets, resolver problemas com ingressos e atrações, excelência ao cliente; enviar a programação a motoristas e aos funcionários de resolução."
+    head: booking_payments
+    agents: [booking_payments, suppliers_pricing, fleet_dispatcher, admin_renewals, people_ops]
+    humans_dispatched: [drivers, guides, resolution_staff]
+    jev: ["classify_supplier_reply: e-mail do fornecedor = confirmado/recusado/pergunta", "severidade de cada problema aberto (issue)"]
+
+  audit:
+    label: "Auditor & Compliance"
+    mission: "Independente: verifica se os fluxos foram seguidos, mede SLAs, pontua conversas e peças, aponta melhorias; Compliance de conteúdo; Jurídico, proteção de dados, sanções, contratos e crise pública. Não executa; recomenda e prepara."
+    head: auditor
+    agents: [auditor, compliance, legal_compliance]
+    independence: "O Auditor não recebe tarefas do CEO-agente nem de outros departamentos; só do cron e do CEO humano."
+    jev: ["audit_scores: notas calibradas por dimensão", "noul flow_followed / hallucination"]
+
+  finance:
+    label: "Financeiro"
+    mission: "Custos, receitas, cobrança de clientes, alertas de pagamentos em aberto, fluxo de caixa, contas a pagar e a receber."
+    head: finance
+    agents: [finance]
+    jev: ["prioridade de cobrança por risco de inadimplência", "classificação de despesas"]
+
+# Quem pode delegar para quem (o CEO-agente delega para heads; heads para seus agentes).
+delegation:
+  ceo: [sysops, content_studio, social_manager, paid_media, seo_site, strategist, market_intel, market_analyst, prospector, partner_manager, mice_events, people_ops, legal_compliance, consultant, concierge, booking_payments, suppliers_pricing, fleet_dispatcher, admin_renewals, finance]
+  # o Auditor e o Compliance de conteúdo nunca são delegados pelo CEO-agente (independência); o Jurídico aceita pedidos de revisão/crise.
+
+# Cadência padrão (Asia/Dubai) — detalhes em brain/core/scheduler.py
+cadence:
+  ceo: ["07:00 briefing", "a cada 2h approve_within_rules", "sob demanda: chat do dashboard"]
+  strategist: ["seg 10:00 weekly_strategy", "dia 1 09:00 monthly_product_review"]
+  market_analyst: ["ter 10:00 weekly_experiments", "sob demanda: research_market / market_entry_plan"]
+  social_manager: ["dom 16:00 weekly_calendar por mercado", "*/30min publish_cycle (sem LLM)", "22:00 daily_metrics"]
+  prospector: ["09:30 daily_outreach (fuso do alvo)", "a cada 4h followups_due"]
+  auditor: ["02:00 daily_audit", "a cada 1h sla_check"]
+  finance: ["23:00 daily_close", "09:00 receivables_alerts", "seg 09:15 weekly_cashflow"]
+  sysops: ["*/5min health_cycle (sem LLM)", "diagnose em sev1", "seg 08:00 weekly_report"]
+  partner_manager: ["qua 11:00 weekly_care", "dia 3 10:00 monthly_statements", "sob demanda: partner_quote"]
+  mice_events: ["evento: handle_rfp", "qui 11:00 weekly_pipeline"]
+  people_ops: ["seg 11:00 weekly_people", "dia 25 10:00 monthly_payroll"]
+  legal_compliance: ["sex 10:00 weekly_review", "sob demanda: review_document / handle_crisis"]
+  social_manager_reputation: ["12:00 reviews_and_comments"]
+  operations: ["a cada 30min confirm_pending", "a cada 15min resolve_issues", "18:00 plan_tomorrow (campo + resolução)"]

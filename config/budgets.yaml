@@ -1,0 +1,72 @@
+# Orçamentos de mídia e de inferência. O Paid Media realoca dentro do teto; o CEO-agente fiscaliza tokens;
+# qualquer aumento de teto passa pelo CEO humano. Jev: ~USD 0,42/M tokens de estado — orçamento próprio em jev_daily_cap_usd.
+
+media:
+  monthly_cap_usd: 4000
+  daily_cap_usd: 135
+  # divisão inicial por mercado (soma 100). Realocação automática a cada 6h: move até 20% do
+  # orçamento do dia do pior CAC para o melhor CAC, respeitando o mínimo por mercado.
+  split_pct:
+    IN: 35
+    SA: 25
+    GB: 25
+    BR: 15
+    RU: 0     # onda 2 — semanas 9-10
+    DE: 0     # onda 2 — semanas 11-12
+    US: 0     # onda 2 — semanas 11-12
+  min_pct_per_active_market: 8
+  # Experimentação (Analista de Mercado): parcela do budget de cada mercado que ele pode gastar sozinho em testes.
+  experiments:
+    share_of_market_budget_pct: 25      # ex.: IN = 35% × 4000 = 1400/mês → até USD 350/mês em experimentos sem pedir
+    max_concurrent_per_market: 2
+    min_spend_before_judgement_usd: 40
+    default_duration_days: 14
+    wave2_pilot_budget_usd: 600         # RU/DE/US: piloto de 90 dias só com decisão da CEO (kind='market_pilot')
+  pause_rules:
+    cpl_above_target_multiple: 2.0
+    pause_after_hours: 48
+    min_spend_before_judgement_usd: 40
+  targets_usd:
+    cpl:   { IN: 4,  SA: 9,  GB: 11, BR: 7,  RU: 8,  DE: 12, US: 15 }
+    cac:   { IN: 80, SA: 140, GB: 150, BR: 110, RU: 130, DE: 160, US: 200 }
+  channels_by_market:
+    IN: [meta, google_search, youtube]
+    SA: [snapchat, tiktok, meta, google_search]
+    GB: [google_search, meta, youtube]
+    BR: [meta, google_search]
+    RU: [yandex_direct, vk, telegram_ads]
+    DE: [google_search, meta]
+    US: [google_search, meta, youtube]
+
+tokens:
+  daily_cap_usd_total: 75
+  per_agent_daily_cap_usd:
+    ceo: 6                # briefing, aprovações, gestão e chat do dashboard
+    strategist: 3
+    prospector: 4
+    auditor: 4
+    market_intel: 3
+    suppliers_pricing: 2
+    content_studio: 12
+    paid_media: 3
+    seo_site: 2
+    social_manager: 5     # calendário semanal x7 + métricas diárias (publicação não usa LLM)
+    market_analyst: 4     # pesquisa com fontes + ciclo semanal de experimentos
+    sysops: 1             # só diagnóstico; checagem não usa LLM
+    partner_manager: 3
+    mice_events: 3
+    people_ops: 2
+    legal_compliance: 3
+    consultant: 25        # somatório dos 7 idiomas
+    booking_payments: 4   # reservas + emissão + resolução a cada 15 min
+    concierge: 3
+    finance: 2            # fechamento, cobrança, caixa
+    compliance: 2
+    escalation_router: 1
+    fleet_dispatcher: 2
+    admin_renewals: 1
+  jev_daily_cap_usd: 3     # ~7M tokens de estado/dia; se estourar, o roteador cai para Haiku e os gates passam a "confirm"
+  on_cap_reached:
+    consultant: degrade_to_fast_model_then_queue   # nunca deixa lead sem resposta
+    content_studio: pause_until_tomorrow
+    default: pause_until_tomorrow

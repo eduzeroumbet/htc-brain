@@ -1,0 +1,129 @@
+# Identidade e regras de autonomia da agência. Tudo aqui é lido pelos agentes em tempo de execução.
+# Preenchido com os dados públicos dos manuais da HCTE (portfólio, sales kit, manual administrativo).
+agency:
+  name: "High Class Travel Experiences"
+  short_name: "HCTE"
+  legal_name: "High Class Experiences Travel LLC"
+  det_license_number: "781806"          # licença DED/DET de operador inbound/outbound, emitida 03/05/2017
+  det_license_expiry: "2027-05-02"      # renova todo 2 de maio; graça de 1 mês; alerta 60 dias antes
+  iata_number: "96029802"
+  events_entity:
+    legal_name: "HCB1 Events Management LLC"
+    license_number: "1309916"
+    license_expiry: "2027-02-13"
+  memberships: ["Dubai Chamber", "Câmara de Comércio Árabe-Brasileira"]
+  base_city: "Dubai"
+  address: "Office 1701, Burj Al Salam Tower, Trade Centre 1, Dubai, UAE"   # decisão pendente sobre manter a sala
+  website: "https://www.highclasstravelexperiences.com"
+  public_email: "contato@highclassexperiences.com"
+  public_phone: "+971 4 226 3224"
+  founded: 2010
+  hq_timezone: "Asia/Dubai"
+  default_currency: "USD"
+  languages: [pt, en, ar, ru, de, hi]
+  coverage: ["Dubai", "Abu Dhabi", "Ras Al Khaimah", "Sharjah", "Ajman", "Fujairah", "Umm Al Quwain", "Omã (parceiro)", "Catar (parceiro)", "Arábia Saudita (parceiro)"]
+  brand_voice: >
+    "O verdadeiro luxo está no serviço — pensado nos mínimos detalhes e executado com precisão."
+    Local, discreto, caloroso e específico. Fala como alguém que vive em Dubai desde 2010 e já recebeu
+    centenas de famílias e VIPs. Nunca vende com superlativo vazio; vende com detalhe (horário certo do
+    Burj Khalifa, qual praia para criança pequena, quantas malas cabem no Escalade). Antecipa necessidades
+    antes de virarem pedidos.
+  ai_disclosure: >
+    Sou o assistente virtual da {agency_name} (licença DET {det_license_number}, IATA 96029802). Posso
+    montar sua viagem inteira e, se preferir, chamo uma pessoa da equipe a qualquer momento.
+
+ceo:
+  name: "Larissa Wilson"
+  whatsapp_env: CEO_WHATSAPP
+  briefing_time: "07:00"
+  weekly_review: "monday 09:00"
+
+# Humanos que continuam na operação (detalhes em config/humans.yaml)
+humans:
+  drivers: 2
+  guides_translators: "freelancers licenciados (TGD), acionados por reserva"
+  advanced_support: "CEO + 1 pessoa sênior em plantão semanal rotativo"
+
+# O que a IA decide sozinha e o que precisa do CEO. O CEO-agente aplica estas regras.
+autonomy:
+  discount_max_pct_autonomous: 5
+  discount_max_pct_ceo_agent: 10             # entre 5% e 10%: o CEO-agente aprova se margem > 12%
+  booking_value_usd_requires_ceo: 5000
+  refund_usd_autonomous: 500
+  media_daily_cap_usd: 135                    # ~USD 4.000/mês
+  media_monthly_cap_usd: 4000
+  new_supplier_requires_ceo: true
+  new_market_requires_ceo: true
+  annual_supplier_contract_requires_ceo: true
+  mice_pax_requires_ceo: 20                   # eventos/MICE acima disso vão para a CEO (HCB1)
+  content_publish_requires_compliance: true
+  prompt_change_requires_eval_pass: true
+
+# Fase 1 não emite aéreo (só link afiliado) apesar da IATA: ativar quando houver GDS/consolidadora integrada.
+products:
+  sell_air: false
+  air_affiliate_links:
+    emirates: "https://www.emirates.com/"
+    skyscanner: "https://www.skyscanner.net/"
+  min_nights_recommendation:                  # treinamento de hotéis (parte 2)
+    dubai_only: 8
+    dubai_desert: 10
+    dubai_abu_dhabi: 10
+    dubai_desert_abu_dhabi: 14
+  tour_durations_hours: [4, 6, 8, 10, 12]     # Abu Dhabi / RAK saindo de Dubai = 10h; já em outro emirado = 7h
+  default_markup_pct:
+    hotel: 14
+    experience: 18
+    transfer: 20
+    package: 16
+    visa_service_fee_usd: 25
+    insurance_markup_pct: 30
+
+# Protocolo para clientes VIP / celebridades / influenciadores (base histórica da HCTE)
+vip_protocol:
+  threshold_followers: 1000000
+  rules:
+    - "Nenhum nome, foto, itinerário ou menção a cliente em conteúdo sem consentimento escrito registrado no CRM."
+    - "Meet & greet presencial (guia/tradutor ou suporte avançado) para VIP acima do limiar ou quando o cliente pedir discrição."
+    - "Dados do VIP visíveis só ao consultor da conversa e ao plantão; PII mascarada nos logs."
+    - "Pedidos de imprensa, parcerias com influenciadores e permutas vão para a CEO."
+    - "Presente VIP personalizado (caderno, flask, tábua com logo) separado do estoque comum."
+
+policies:
+  cancellation: >
+    Cancelamento gratuito até 72 horas antes do primeiro serviço, salvo quando o fornecedor exigir
+    prazo maior (informado na cotação). Remarcação gratuita se a companhia aérea cancelar o voo por
+    motivo de segurança ou fechamento de espaço aéreo.
+  payment: >
+    Pagamento por cartão, transferência bancária, link seguro (até USD 10.000 por link) e, para
+    brasileiros, PIX ou até 12 parcelas no cartão via parceiro. 30% na reserva e 70% até 14 dias antes
+    da viagem para pacotes acima de USD 1.500; 100% na reserva para os demais. Taxas bancárias por
+    conta do remetente.
+  data: >
+    Coletamos apenas o necessário para a reserva. Passaporte só quando o fornecedor exige, guardado
+    criptografado e apagado 30 dias após a viagem. Você pode pedir exclusão a qualquer momento.
+  in_trip: >
+    Toda comunicação com cliente e fornecedor durante a viagem é por escrito. Grupo de WhatsApp com
+    cliente (e agência parceira, se houver) criado 2 dias antes da chegada.
+
+kpis:
+  first_response_seconds_target: 60
+  quote_minutes_target: 15                    # antes: 24–48 h
+  escalation_rate_target_pct: 4
+  cac_per_booking_usd_target: 120
+  lead_to_booking_pct_target: 4
+  monthly_bookings_target: 60
+  gross_margin_pct_target: 16
+  booking_accuracy_pct_target: 98             # KPI já existente no organograma
+  supplier_confirmation_minutes_target: 120
+  issue_resolution_hours_target: 24
+  receivables_overdue_pct_target: 5
+
+finance:
+  fixed_cost_usd_month: 4200                  # escritório + licenças + seguros + máquina (sem folha de motoristas); ajustar com a contabilidade
+  deposit_pct: 30
+  balance_due_days_before_travel: 14
+  reminder_schedule_days: [-3, 0, 3, 7]       # antes do vencimento, no dia, e após
+  overdue_escalate_to_ceo_usd: 1000
+  overdue_escalate_to_ceo_days: 7
+  b2b_commission_default_pct: 10              # acima disso → decisão do CEO

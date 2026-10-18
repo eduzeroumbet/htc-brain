@@ -1,0 +1,83 @@
+code: BR
+name: Brasil
+wave: 1
+active: true
+priority_score: 8.0
+language: pt-BR
+secondary_languages: []
+currency: BRL
+display_currency: [BRL, USD]
+timezone: America/Sao_Paulo
+market_size_note: "Mercado histórico da HCTE (desde 2010): brasileiros de alta renda, celebridades e influenciadores com 336 mi de seguidores somados. Maior mercado latino-americano para Dubai; +18% em 2025 vs +5% global (DET). Emirates diária GRU e GIG."
+
+persona:
+  name: "Huda"
+  role: "consultora de viagens da High Class em Dubai"
+  bio: "Brasileira de BH morando em Dubai há 7 anos, da equipe da High Class desde o início; já recebeu centenas de casais, famílias e clientes conhecidos com total discrição; sabe onde tem pão de queijo, qual praia é boa para criança, quantas malas cabem no Escalade e o que vale ou não a pena pagar."
+  tone: "próxima, elegante, direta, bem-humorada sem exagero; usa 'você'; preços em BRL e USD; explica câmbio, IOF e parcelamento; nunca promete o que não sabe; nunca cita outros clientes."
+  greeting: "Oi! Eu sou a Huda, consultora da {agency_name} em Dubai. Me conta suas datas e quem vai viajar que eu monto seu roteiro em poucos minutos."
+
+qualification_questions:                  # treinamento de hotéis (parte 2), na ordem
+  - "É a lazer, negócios ou uma ocasião especial?"
+  - "Quem viaja e quais idades? Primeira vez em Dubai?"
+  - "Prefere ficar no centro (Downtown/Marina) ou num resort mais tranquilo (Palm/deserto)?"
+  - "Qual faixa por noite de hotel te deixa confortável? (3 faixas)"
+  - "Boutique, resort grande ou algo mais minimalista?"
+  - "Alguma necessidade especial: academia, piscina, acessibilidade, berço, cozinha?"
+
+vip_share_pct: 15                         # parcela estimada de clientes VIP/celebridades na base
+min_nights_recommendation: { dubai_only: 8, dubai_desert: 10, dubai_abu_dhabi: 10, dubai_desert_abu_dhabi: 14 }
+
+channels:
+  primary: [whatsapp, instagram]
+  secondary: [webchat, email]
+  ads: [meta, google_search]
+  posting_hours_local: ["08:00", "12:30", "20:00"]
+
+segments:
+  - { name: "Família alta renda (8–14 noites, Dubai + Abu Dhabi + deserto)", share_pct: 30, avg_ticket_usd: 6500, nights: 10 }
+  - { name: "Casal / lua de mel", share_pct: 25, avg_ticket_usd: 3200, nights: 6 }
+  - { name: "VIP / celebridade / influenciador (protocolo de discrição)", share_pct: 15, avg_ticket_usd: 9000, nights: 6 }
+  - { name: "Grupo de amigas / aniversário", share_pct: 10, avg_ticket_usd: 2400, nights: 5 }
+  - { name: "Corporativo / MICE via HCB1 (CEO fecha)", share_pct: 10, avg_ticket_usd: 4000, nights: 4 }
+  - { name: "Stopover Emirates (48h)", share_pct: 10, avg_ticket_usd: 500, nights: 2 }
+
+peaks:
+  - { period: "Jul", reason: "férias escolares; Dubai Summer Surprises, preços baixos" }
+  - { period: "Dez–Fev", reason: "férias + clima perfeito; Réveillon" }
+  - { period: "Carnaval, Semana Santa, feriados prolongados", reason: "viagens curtas" }
+
+connectivity:
+  carriers: [Emirates]
+  weekly_flights_note: "GRU diário (A380) e GIG diário desde 26/10/2025; ~14h30 de voo"
+  visa: "Isento de visto (até 90 dias). Passaporte com 6 meses de validade."
+
+objections:
+  - { objection: "É seguro ir agora?", answer_key: safety_2026 }
+  - { objection: "É muito caro", answer_key: value_brl }
+  - { objection: "Posso beber? Como me visto? Casal pode andar de mão dada?", answer_key: rules_for_visitors }
+  - { objection: "Compro direto no Booking, por que agência?", answer_key: value_of_agency_br }
+  - { objection: "Parcelamento", answer_key: payment_br }
+
+content_pillars:
+  - "Dubai em 2026, sem drama: o que mudou de verdade, com fonte oficial"
+  - "Roteiro de 5 dias para casal por R$ X (sem aéreo): dia a dia com preços"
+  - "Dubai com criança: praias, parques, o que evitar"
+  - "Stopover Emirates: 48h que valem a viagem"
+  - "Regras que todo brasileiro pergunta (bebida, roupa, Ramadã, fotos)"
+  - "Bastidores: cotação real antes/depois, depoimentos"
+
+compliance_notes:
+  - "CDC e LGPD: preço total, direito de arrependimento, consentimento."
+  - "Sem CADASTUR, a agência de Dubai vende como fornecedor estrangeiro: deixar claro na cotação (moeda, IOF do cartão)."
+  - "Pix só via parceiro com CNPJ; confirmar com contador."
+
+payments:
+  gateway: stripe
+  methods: [card_international, bank_transfer, payment_link_up_to_usd_10000, pix_via_partner, card_installments_12x_via_partner]
+  note: "Política atual da HCTE (sales kit): cartão, transferência, link até USD 10 mil, PIX ou até 12x no cartão para brasileiros; taxas bancárias por conta do remetente. PIX/parcelado exigem parceiro com CNPJ."
+
+kpi_targets:
+  cpl_usd: 7
+  cac_usd: 110
+  lead_to_booking_pct: 5

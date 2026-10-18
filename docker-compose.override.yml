@@ -1,0 +1,12 @@
+services:
+  minio:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${MINIO_ROOT_USER:-brain}
+      RUSTFS_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_VOLUMES: /data
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-brain}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data

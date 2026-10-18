@@ -1,0 +1,123 @@
+#cloud-config
+# Prepara a VM da agência: Docker + Compose, swap, firewall, fail2ban, atualizações automáticas, CloudWatch agent,
+# Tailscale (opcional), relógio em Asia/Dubai, pasta /opt/dubai-ai-agency e cron de backup para o S3.
+# Não contém segredos: o .env é preenchido por você depois (passo 4 do output do Terraform).
+
+timezone: Asia/Dubai
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - git
+  - unzip
+  - make
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - jq
+  - htop
+  - awscli
+
+write_files:
+  - path: /etc/sysctl.d/99-brain.conf
+    content: |
+      vm.swappiness=10
+      vm.overcommit_memory=1
+      net.core.somaxconn=1024
+      fs.inotify.max_user_watches=524288
+  - path: /etc/docker/daemon.json
+    content: |
+      { "log-driver": "json-file", "log-opts": { "max-size": "50m", "max-file": "5" }, "live-restore": true }
+  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 5
+      bantime = 1h
+  - path: /etc/apt/apt.conf.d/51-brain-unattended
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+  - path: /opt/cloudwatch-agent.json
+    content: |
+      { "metrics": { "namespace": "CWAgent", "append_dimensions": { "InstanceId": "$${aws:InstanceId}" },
+          "metrics_collected": { "disk": { "measurement": ["used_percent"], "resources": ["/"], "ignore_file_system_types": ["sysfs","devtmpfs","tmpfs","overlay"] },
+                                 "mem": { "measurement": ["mem_used_percent"] } } } }
+  - path: /etc/cron.d/brain-backup
+    content: |
+      # 04:00 Dubai: dump criptografado do banco → ./backups e S3 (scripts/backup.sh lê o .env)
+      0 4 * * * ubuntu cd /opt/dubai-ai-agency && [ -f .env ] && ./scripts/backup.sh >> /var/log/brain-backup.log 2>&1 && aws s3 sync backups/ s3://${backup_bucket}/dumps/ --region ${aws_region} --storage-class STANDARD_IA >> /var/log/brain-backup.log 2>&1
+  - path: /usr/local/bin/brain-bootstrap.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      exec > >(tee -a /var/log/brain-bootstrap.log) 2>&1
+      echo "== $(date -Is) bootstrap start"
+
+      # swap 8 GB (Postgres + ClickHouse + Chatwoot em picos)
+      if ! swapon --show | grep -q /swapfile; then
+        fallocate -l 8G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      fi
+      sysctl --system
+
+      # Docker (repositório oficial)
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      chmod a+r /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+      apt-get update -y
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      usermod -aG docker ubuntu
+      systemctl enable --now docker
+
+      # firewall: só 80/443 (SSH entra pelo security group/Tailscale)
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow 80/tcp
+      ufw allow 443/tcp
+      %{ if tailscale_auth_key == "" ~}
+      ufw allow 22/tcp
+      %{ endif ~}
+      ufw --force enable
+      systemctl enable --now fail2ban
+
+      # CloudWatch agent (disco e memória para os alarmes do Terraform)
+      curl -fsSL -o /tmp/cw.deb https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb && dpkg -i /tmp/cw.deb || true
+      /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/cloudwatch-agent.json -s || true
+
+      %{ if tailscale_auth_key != "" ~}
+      # Tailscale: SSH privado, sem porta pública
+      curl -fsSL https://tailscale.com/install.sh | sh
+      tailscale up --authkey='${tailscale_auth_key}' --ssh --hostname=hcte-brain
+      %{ endif ~}
+
+      # código da máquina
+      mkdir -p /opt && cd /opt
+      %{ if repo_url != "" ~}
+      if [ ! -d dubai-ai-agency ]; then git clone --branch '${repo_ref}' '${repo_url}' dubai-ai-agency; fi
+      %{ else ~}
+      echo "repo_url vazio: envie o zip com scp para /opt e descompacte (ver outputs do Terraform)."
+      mkdir -p dubai-ai-agency
+      %{ endif ~}
+      chown -R ubuntu:ubuntu /opt/dubai-ai-agency
+      mkdir -p /opt/dubai-ai-agency/backups && chown ubuntu:ubuntu /opt/dubai-ai-agency/backups
+
+      # lembrete no login
+      cat > /etc/motd <<'MOTD'
+      ┌──────────────────────────────────────────────────────────────┐
+      │  hcte-brain · agência 100% IA · ${domain}                    │
+      │  cd /opt/dubai-ai-agency && bash scripts/init_env.sh          │
+      │  make up && make migrate && make check && make jev-smoke      │
+      │  logs: make logs · estado: make status · backup: make backup  │
+      └──────────────────────────────────────────────────────────────┘
+      MOTD
+      echo "== $(date -Is) bootstrap done"
+
+runcmd:
+  - [bash, /usr/local/bin/brain-bootstrap.sh]
+
+final_message: "hcte-brain pronta em $UPTIME s — veja /var/log/brain-bootstrap.log"

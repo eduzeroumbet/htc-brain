@@ -1,0 +1,71 @@
+code: IN
+name: Índia
+wave: 1
+active: true
+priority_score: 8.9
+language: en-IN
+secondary_languages: [hi]
+currency: INR
+display_currency: [INR, USD]
+timezone: Asia/Kolkata
+market_size_note: "Maior emissor de Dubai: ~2,2 mi visitantes/ano (est. 2023). Sul da Ásia caiu 8% em 2025 e recupera em 2026."
+
+persona:
+  name: "Huda"
+  role: "Dubai travel consultant"
+  bio: "Indian, living in Dubai for 8 years, has planned 400+ honeymoons and family trips; knows where to find good vegetarian and Jain food, which malls have the best Diwali sales and how to do the Burj Khalifa at sunset without the queue."
+  tone: "warm, efficient, uses 'ji' sparingly, mixes English with light Hinglish only if the client does; never pushy; numbers always in INR and USD."
+  greeting: "Hi! I'm Huda, {agency_name}'s Dubai consultant. Tell me your dates and who's travelling and I'll put together a plan in minutes."
+
+channels:
+  primary: [whatsapp, instagram]
+  secondary: [webchat, email]
+  ads: [meta, google_search, youtube]
+  posting_hours_local: ["08:30", "13:00", "20:30"]
+
+segments:
+  - { name: "Honeymoon", share_pct: 30, avg_ticket_usd: 1600, nights: 5 }
+  - { name: "Family with kids", share_pct: 30, avg_ticket_usd: 1200, nights: 5 }
+  - { name: "Friends / bachelor", share_pct: 20, avg_ticket_usd: 800, nights: 4 }
+  - { name: "Destination wedding guests", share_pct: 10, avg_ticket_usd: 1400, nights: 3 }
+  - { name: "Business + leisure", share_pct: 10, avg_ticket_usd: 900, nights: 3 }
+
+peaks:
+  - { period: "Oct–Mar", reason: "clima + Diwali + Natal/Ano Novo + casamentos" }
+  - { period: "Diwali (out/nov)", reason: "férias escolares e bônus" }
+  - { period: "Maio–Jun", reason: "férias escolares de verão; sensível a preço (DSS)" }
+
+connectivity:
+  carriers: [Emirates, flydubai, IndiGo, Air India, Air India Express, SpiceJet]
+  weekly_flights_note: "1.000+ voos/semana em condições normais; Air India/IndiGo suspenderam rotas em mar/2026 e retomaram gradualmente"
+  visa: "Visto de turista obrigatório (30 dias). Visa on arrival para portadores de visto/green card EUA, UK, UE válidos. Agência cobra USD 25 de serviço."
+
+objections:
+  - { objection: "Is Dubai safe right now?", answer_key: safety_2026 }
+  - { objection: "Too expensive vs Thailand/Bali", answer_key: value_vs_alternatives }
+  - { objection: "Vegetarian / Jain food", answer_key: food_india }
+  - { objection: "Visa rejection risk", answer_key: visa_process }
+  - { objection: "Hidden charges", answer_key: total_price_policy }
+
+content_pillars:
+  - "Safety & practical (airport status, what changed since March, DET official numbers)"
+  - "Honeymoon Dubai: 5-day plan under ₹1.4L pp"
+  - "Family Dubai with toddlers: beaches, IMG Worlds, Aquaventure"
+  - "Shopping Dubai: Diwali & DSF deals, gold souk, tax refund"
+  - "Food: vegetarian/Jain/Indian in Dubai, Trèsind Studio 3 stars"
+  - "Proof: client stories, real quotes, before/after itineraries"
+
+compliance_notes:
+  - "ASCI: preços 'a partir de' com condições visíveis; nenhuma alegação de 'visto garantido'."
+  - "DPDP Act 2023: consentimento explícito para uso de dados; opção de exclusão."
+  - "Exibir preço total em INR incluindo GST quando cobrado por parceiro indiano."
+
+payments:
+  gateway: stripe
+  methods: [card, upi_via_partner]
+  note: "UPI só via parceiro indiano; Stripe em INR ou USD."
+
+kpi_targets:
+  cpl_usd: 4
+  cac_usd: 80
+  lead_to_booking_pct: 3.5

@@ -1,0 +1,49 @@
+# Calendário de tudo o que vence — extraído dos manuais Administrativo e de RH 2026.
+# O agente Admin & Renovações alerta em 90/60/30 dias, pede cotações e prepara documentos.
+# Datas anuais repetem; datas fixas são as informadas nos manuais (confirmar no primeiro ciclo).
+
+alerts_days_before: [90, 60, 30, 7]
+
+items:
+  # ───────── empresa ─────────
+  - { id: trade_license_hcte, name: "Trade License HCTE 781806 (DED/DET)", due: "2027-05-02", recurrence: yearly, owner: ceo, action: "Renovar no portal DED; docs: licença, EID e passaporte dos gerentes, seguro empresarial, Ejari. Graça de 1 mês." }
+  - { id: trade_license_hcb1, name: "Trade License HCB1 Events 1309916", due: "2027-02-13", recurrence: yearly, owner: ceo, action: "Renovar no portal DED." }
+  - { id: business_insurance, name: "Seguro empresarial (AIG via corretor)", due: "2027-04-28", recurrence: yearly, owner: admin_renewals, action: "Pedir cotação a 3 corretores 90 dias antes; é pré-requisito da licença." }
+  - { id: establishment_card, name: "Establishment Card 2/1/975824", due: "2026-12-31", recurrence: yearly, owner: pro, action: "PRO renova; docs: licença, MOA, Ejari, cartão anterior, EID/passaporte do dono e gerente.", note: "confirmar data exata no cartão" }
+  - { id: ejari, name: "Ejari — sala 1701", due: "2026-10-09", recurrence: on_lease, owner: ceo, action: "Depende da decisão de manter a sala. Landlord SRG processa após assinatura." }
+  - { id: office_lease, name: "Contrato de aluguel sala 1701 (SRG)", due: "2026-08-10", recurrence: biennial, owner: ceo, action: "Aviso de não renovação 3 meses antes. Decisão: manter, reduzir ou endereço comercial + sala por hora.", note: "prazo do manual já passou — confirmar situação vigente" }
+  - { id: po_box, name: "PO Box 5001505 (Emirates Post)", due: "2026-12-31", recurrence: yearly, owner: admin_renewals, action: "Renovação online, AED 995." }
+  - { id: dubai_chamber, name: "Dubai Chamber", due: "2027-05-02", recurrence: yearly, owner: ceo, action: "Renova junto com a licença." }
+  - { id: ccab, name: "Câmara de Comércio Árabe-Brasileira", due: "2027-01-31", recurrence: yearly, owner: admin_renewals, action: "Aceitar acordo no portal, pagar fatura por transferência.", note: "confirmar mês" }
+
+  # ───────── frota ─────────
+  - { id: mulkiya_escalade, name: "Mulkiya Cadillac Escalade 2023 (B 74772)", due: "2027-02-12", recurrence: yearly, owner: fleet_dispatcher, action: "Teste RTA antes; renovar no portal RTA." }
+  - { id: mulkiya_yukon, name: "Mulkiya GMC Yukon 2025 (EE 65196)", due: "2026-10-21", recurrence: yearly, owner: fleet_dispatcher, action: "Teste RTA antes; renovar no portal RTA." }
+  - { id: mulkiya_gac, name: "Mulkiya GAC M8 2026 (G 27614)", due: "2027-03-30", recurrence: yearly, owner: fleet_dispatcher, action: "Teste RTA antes; renovar no portal RTA." }
+  - { id: motor_insurance, name: "Seguro dos veículos", due: "2027-04-28", recurrence: yearly, owner: fleet_dispatcher, action: "Cotar com 60 dias.", note: "confirmar data por veículo" }
+  - { id: rta_fines_weekly, name: "Multas RTA (3 carros)", due: "weekly:monday", recurrence: weekly, owner: fleet_dispatcher, action: "Consultar por placa; descontar do motorista conforme manual (máx. 20% do salário em WPS)." }
+  - { id: service_10k, name: "Revisão a cada 10.000 km (Al Ghandi)", due: "by_odometer", recurrence: odometer, owner: fleet_dispatcher, action: "Agendar quando odômetro ≥ última revisão + 9.500 km." }
+
+  # ───────── pessoas (só motoristas) ─────────
+  - { id: health_insurance, name: "Seguro saúde (Pacific Prime)", due: "2027-04-24", recurrence: yearly, owner: admin_renewals, action: "Cotação 3–4 meses antes; census list atualizada (2 motoristas)." }
+  - { id: driver_visas, name: "Vistos/labour cards dos motoristas", due: "per_employee", recurrence: biennial, owner: admin_renewals, action: "PRO; renovar 30 dias antes; ILOE em dia." }
+  - { id: iloe, name: "ILOE dos motoristas", due: "per_employee", recurrence: biennial, owner: admin_renewals, action: "Renovação a cada 2 anos." }
+
+  # ───────── serviços recorrentes ─────────
+  - { id: dewa, name: "DEWA (energia)", due: "monthly:30", recurrence: monthly, owner: finance, action: "Boleto dia 15, vence dia 30. Cancela se a sala sair." }
+  - { id: du, name: "Du (internet, fixo, celulares)", due: "monthly:30", recurrence: monthly, owner: finance, action: "Reduzir linhas ao devolver os 16 iPhones." }
+  - { id: microsoft365, name: "Microsoft 365", due: "monthly", recurrence: monthly, owner: finance, action: "Reduzir a 2–3 caixas de serviço." }
+  - { id: cloudways, name: "Cloudways (HCTE System)", due: "monthly", recurrence: monthly, owner: finance, action: "Cancelar após migração do HCTE System." }
+  - { id: locaweb, name: "Locaweb (site antigo e domínios)", due: "yearly", recurrence: yearly, owner: finance, action: "Manter domínios; migrar site." }
+  - { id: cleaning, name: "Limpeza do escritório (Juma Salmin)", due: "2026-12-04", recurrence: yearly, owner: admin_renewals, action: "Renovar ou cancelar conforme decisão da sala." }
+  - { id: pest_control, name: "Dedetização (Akkad)", due: "2026-11-22", recurrence: yearly, owner: admin_renewals, action: "Contrato anual; aplicação trimestral; pedir work permit ao prédio 1 dia antes." }
+  - { id: water_filters, name: "Filtros de água (Danube)", due: "2026-12-15", recurrence: semiannual, owner: admin_renewals, action: "3 filtros a cada 6 meses, 1 anual." }
+  - { id: accountants, name: "Contadores virtuais (AED 2.000 + VAT)", due: "monthly:23", recurrence: monthly, owner: finance, action: "Pagar dia 23; enviar fechamento no dia 1." }
+
+inventory_categories:                     # manual administrativo, seção 3
+  gifts_adult: ["cartas douradas Dubai", "decoração de vidro", "kit pérola", "olho grego", "caneca", "copo shot", "marcador de livro"]
+  gifts_kids: ["kit pintura", "quebra-cabeça", "camelo de pelúcia", "livro de colorir", "caderno e caneta"]
+  gifts_vip: ["flask personalizado", "tábua de queijos personalizada", "Lego Dubai (polícia, torres, camelo)", "jogo de tabuleiro Dubai", "caderno azul com nome"]
+  packaging_brazil: ["saquinhos de veludo", "organza", "fita personalizada"]
+  abayas: "controle de saída/entrada por guia, lavanderia e escritório"
+  reorder_rule: "última semana do mês; presentes antes da alta temporada (outubro)"

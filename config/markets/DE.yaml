@@ -1,0 +1,67 @@
+code: DE
+name: Alemanha, Áustria e Suíça (DACH)
+wave: 2
+active: false            # ligar nas semanas 11-12
+priority_score: 7.2
+language: de
+secondary_languages: [en]
+currency: EUR
+display_currency: [EUR]
+timezone: Europe/Berlin
+covers_also: [AT, CH]
+market_size_note: "Alemanha ~0,5 mi/ano (est. 2023). Lufthansa/SWISS/Eurowings fora até 24/out/2026; Emirates de FRA, MUC, DUS, HAM; Etihad via AUH."
+
+persona:
+  name: "Huda"
+  role: "Reiseberaterin für Dubai"
+  bio: "Aus Hamburg, seit 2017 in Dubai. Kennt die ruhigen Strände, die besten Hotels für Familien mit Kleinkindern, Wüstentouren ohne Touristenmassen und weiß, was wirklich im Preis enthalten ist."
+  tone: "sachlich, freundlich, präzise; Sie-Form; Preise in EUR inkl. aller Gebühren; keine Superlative."
+  greeting: "Hallo! Ich bin Huda, Dubai-Beraterin von {agency_name}. Nennen Sie mir Ihre Reisedaten und wer mitreist — ich stelle Ihnen in wenigen Minuten einen Plan zusammen."
+
+channels:
+  primary: [webchat, email]
+  secondary: [whatsapp]
+  ads: [google_search, meta]
+  posting_hours_local: ["07:30", "12:00", "19:00"]
+
+segments:
+  - { name: "Familie Herbst-/Winterferien", share_pct: 40, avg_ticket_usd: 3000, nights: 7 }
+  - { name: "Paar Städtetrip", share_pct: 30, avg_ticket_usd: 2200, nights: 4 }
+  - { name: "Kombination Dubai + Abu Dhabi / Oman", share_pct: 20, avg_ticket_usd: 3400, nights: 8 }
+  - { name: "Stopover nach Asien", share_pct: 10, avg_ticket_usd: 400, nights: 2 }
+
+peaks:
+  - { period: "Okt–Apr", reason: "Wärme im Winter" }
+  - { period: "Herbstferien (Okt) und Weihnachten", reason: "Familien" }
+
+connectivity:
+  carriers: [Emirates, Etihad]
+  suspended_until: { Lufthansa: "2026-10-24", SWISS: "2026-10-24", Eurowings: "2026-11-01" }
+  visa: "Visum bei Ankunft, 90 Tage, kostenlos."
+
+objections:
+  - { objection: "Sicherheit / Auswärtiges Amt", answer_key: safety_2026_aa }
+  - { objection: "Reisesicherungsschein / Pauschalreiserecht", answer_key: protection_de }
+  - { objection: "Nachhaltigkeit / Menschenrechte", answer_key: values_de }
+  - { objection: "Preis-Leistung vs. Kanaren/Ägypten", answer_key: value_vs_alternatives_de }
+
+content_pillars:
+  - "Dubai Winter 2026/27: Fakten statt Schlagzeilen"
+  - "Familienurlaub Dubai ab € X p.P.: Beispielreisen mit allen Kosten"
+  - "Dubai + Abu Dhabi in 8 Tagen"
+  - "Kultur und Wüste: Al Fahidi, Sharjah, Hatta"
+  - "Was ist erlaubt? Regeln für Besucher, Ramadan"
+
+compliance_notes:
+  - "DSGVO vollständig (Auftragsverarbeitung, Datenschutzerklärung)."
+  - "Pauschalreiserichtlinie: klarstellen, dass kein Pauschalreiseveranstalter nach deutschem Recht; Absicherung erläutern."
+  - "Preisangabenverordnung: Endpreise inkl. aller Steuern."
+
+payments:
+  gateway: stripe
+  methods: [card, sepa_debit, paypal_optional]
+
+kpi_targets:
+  cpl_usd: 12
+  cac_usd: 160
+  lead_to_booking_pct: 4

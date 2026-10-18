@@ -1,0 +1,67 @@
+code: US
+name: Estados Unidos e Canadá
+wave: 2
+active: false            # ligar nas semanas 11-12
+priority_score: 6.8
+language: en-US
+secondary_languages: [es]
+currency: USD
+display_currency: [USD]
+timezone: America/New_York
+covers_also: [CA]
+market_size_note: "EUA ~0,7 mi/ano (est. 2023); Américas 1,40 mi em 2025 (7%). Emirates para 12 cidades; Air Canada fora até jan/2027."
+
+persona:
+  name: "Huda"
+  role: "Dubai travel advisor"
+  bio: "From Austin, in Dubai since 2019. Plans bucket-list trips: Dubai + Abu Dhabi, desert glamping, yacht days, and the honest version of what's worth the money."
+  tone: "upbeat but not salesy, concise, USD only, transparent about tipping and taxes."
+  greeting: "Hi! I'm Huda, {agency_name}'s Dubai advisor. Share your dates and travel party and I'll draft a plan in a few minutes."
+
+channels:
+  primary: [webchat, email]
+  secondary: [whatsapp, instagram]
+  ads: [google_search, meta, youtube]
+  posting_hours_local: ["08:00", "12:00", "19:00"]
+
+segments:
+  - { name: "Bucket-list couples", share_pct: 40, avg_ticket_usd: 4200, nights: 6 }
+  - { name: "Multigen family", share_pct: 25, avg_ticket_usd: 5000, nights: 7 }
+  - { name: "Luxury / honeymoon", share_pct: 20, avg_ticket_usd: 6500, nights: 6 }
+  - { name: "Business + leisure", share_pct: 15, avg_ticket_usd: 2000, nights: 3 }
+
+peaks:
+  - { period: "Nov–Apr", reason: "weather" }
+  - { period: "Thanksgiving, Christmas, spring break", reason: "families" }
+
+connectivity:
+  carriers: [Emirates, Etihad, United (via partners)]
+  suspended_until: { "Air Canada": "2027-01-15" }
+  visa: "Visa on arrival, 30 days, free."
+
+objections:
+  - { objection: "State Dept travel advisory level", answer_key: safety_2026_state_dept }
+  - { objection: "LGBTQ+ travelers, dress code, alcohol", answer_key: rules_for_visitors_us }
+  - { objection: "Long flight — is it worth it?", answer_key: worth_the_flight }
+  - { objection: "Tipping, hidden fees, tourism tax", answer_key: total_price_policy }
+
+content_pillars:
+  - "Dubai in 2026: what the numbers say (State Dept, DET, airport)"
+  - "Dubai + Abu Dhabi in 7 days: itinerary with all-in costs"
+  - "Is Dubai worth the 14-hour flight? Honest take"
+  - "Luxury for less: five-star at 60% occupancy"
+  - "Desert, culture, food: beyond the malls"
+
+compliance_notes:
+  - "FTC: sem alegações enganosas; disclosures em conteúdo pago/afiliado."
+  - "California Seller of Travel: não aplicável a vendedor estrangeiro sem presença na CA, confirmar com advogado se abrir entidade nos EUA."
+  - "CCPA/CPRA: privacy notice e opt-out."
+
+payments:
+  gateway: stripe
+  methods: [card, apple_pay, google_pay]
+
+kpi_targets:
+  cpl_usd: 15
+  cac_usd: 200
+  lead_to_booking_pct: 3.5

@@ -1,0 +1,32 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Inbox humana (Chatwoot)
+	handle_path /inbox* {
+		reverse_proxy chatwoot:3000
+	}
+
+	# Observabilidade (Langfuse)
+	handle_path /langfuse* {
+		reverse_proxy langfuse-web:3000
+	}
+
+	# Tudo o resto: webhooks, API e dashboard do CEO
+	handle {
+		reverse_proxy brain:8000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 50mb
+			roll_keep 5
+		}
+	}
+}

@@ -1,0 +1,773 @@
+<title>Cérebro da Agência</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #EFEDE6;          /* areia pálida */
+    --surface: #FFFFFF;
+    --surface-2: #F7F6F2;
+    --line: #DCD8CE;
+    --ink: #14232B;         /* tinta do Golfo */
+    --ink-2: #3D4B52;
+    --muted: #6B787E;
+    --accent: #0E6E77;      /* verde-azulado DET */
+    --accent-ink: #FFFFFF;
+    --accent-soft: #D9ECEE;
+    --gold: #A8791F;
+    --gold-soft: #F1E7CF;
+    --good: #2C7A4B;  --good-soft: #DCEFE2;
+    --warn: #B7791F;  --warn-soft: #F6E9CF;
+    --bad:  #B3372B;  --bad-soft:  #F4DAD6;
+    --chart-grid: #E6E2D8;
+    --shadow: 0 1px 2px rgba(20,35,43,.06), 0 8px 24px -16px rgba(20,35,43,.25);
+    --radius: 10px;
+    --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Bricolage Grotesque", "Manrope", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F171C; --surface: #17232A; --surface-2: #1D2B33; --line: #2B3A43;
+      --ink: #E9EEF0; --ink-2: #C3CDD2; --muted: #8C9BA3;
+      --accent: #43B4BE; --accent-ink: #062226; --accent-soft: #163A3F;
+      --gold: #D9AE4F; --gold-soft: #3A3120;
+      --good: #5CC486; --good-soft: #163A29; --warn: #E0A53F; --warn-soft: #3A2E15; --bad: #EA7A6F; --bad-soft: #3F1F1B;
+      --chart-grid: #26343C; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F171C; --surface: #17232A; --surface-2: #1D2B33; --line: #2B3A43;
+    --ink: #E9EEF0; --ink-2: #C3CDD2; --muted: #8C9BA3;
+    --accent: #43B4BE; --accent-ink: #062226; --accent-soft: #163A3F;
+    --gold: #D9AE4F; --gold-soft: #3A3120;
+    --good: #5CC486; --good-soft: #163A29; --warn: #E0A53F; --warn-soft: #3A2E15; --bad: #EA7A6F; --bad-soft: #3F1F1B;
+    --chart-grid: #26343C; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; margin: 0; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-block: 0 40px; padding-inline: 20px; }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+  h1 { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  h2 { font-size: 17px; font-weight: 700; }
+  h3 { font-size: 14px; font-weight: 700; }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  a { color: var(--accent); }
+  button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* topo */
+  .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .top-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark { width: 38px; height: 38px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: -.02em; }
+  .brand small { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
+  .top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .pill.live .dot { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+  .btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 5px 9px; font-size: 12px; }
+  .subnav { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .subnav a { white-space: nowrap; padding: 6px 10px; border-radius: 7px; text-decoration: none; color: var(--ink-2); font-weight: 600; font-size: 13px; }
+  .subnav a:hover { background: var(--surface-2); }
+
+  /* seções */
+  section { margin-top: 28px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sec-head .meta { color: var(--muted); font-size: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .card.pad { padding: 16px 18px; }
+  .lift { box-shadow: var(--shadow); }
+
+  /* decisões */
+  .decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .decision { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-left: 4px solid var(--gold); }
+  .decision .kind { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .decision .kind .eyebrow { color: var(--gold); }
+  .decision p { margin: 0; color: var(--ink-2); }
+  .decision .rec { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+  .decision .rec b { color: var(--ink); }
+  .decision .actions { display: flex; gap: 8px; margin-top: auto; }
+  .decision.done { opacity: .55; border-left-color: var(--line); }
+  .empty { color: var(--muted); padding: 18px; text-align: center; }
+
+  /* kpis */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .kpi .val { font-size: 26px; font-weight: 600; line-height: 1; }
+  .kpi .val small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 3px; font-family: var(--font-ui); }
+  .kpi .delta { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .delta.up { color: var(--good); } .delta.down { color: var(--bad); } .delta.flat { color: var(--muted); }
+  .kpi .target { color: var(--muted); font-size: 11px; }
+  .kpi svg { width: 100%; height: 28px; display: block; margin-top: 4px; }
+
+  /* grids */
+  .two { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+  #operacao .two { grid-template-columns: 1fr 1fr; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .two-even { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .two, .two-even { grid-template-columns: 1fr; } }
+
+  /* chart */
+  .chart { width: 100%; height: 260px; display: block; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  /* funil */
+  .funnel-row { display: grid; grid-template-columns: 90px 1fr 120px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .funnel-row:last-child { border-bottom: 0; }
+  .funnel-row .mk { font-weight: 700; }
+  .funnel-row .mk small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
+  .bar { height: 14px; border-radius: 3px; display: flex; overflow: hidden; background: var(--surface-2); }
+  .bar span { height: 100%; }
+  .bar .s1 { background: var(--accent-soft); } .bar .s2 { background: color-mix(in oklab, var(--accent) 55%, var(--accent-soft)); } .bar .s3 { background: var(--accent); }
+  .funnel-row .rev { text-align: right; font-size: 13px; }
+  .funnel-row .rev small { display: block; color: var(--muted); font-size: 11px; }
+
+  /* tabelas */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; }
+  td.r, th.r { text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .chip.good { background: var(--good-soft); color: var(--good); } .chip.warn { background: var(--warn-soft); color: var(--warn); } .chip.bad { background: var(--bad-soft); color: var(--bad); } .chip.neutral { background: var(--surface-2); color: var(--ink-2); }
+  .cap { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; min-width: 90px; }
+  .cap span { display: block; height: 100%; background: var(--accent); }
+  .cap.warn span { background: var(--warn); } .cap.bad span { background: var(--bad); }
+
+  /* escalonamentos */
+  .esc { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .esc:last-child { border-bottom: 0; }
+  .esc .sev { width: 4px; align-self: stretch; border-radius: 2px; background: var(--warn); flex: none; }
+  .esc .sev.critical { background: var(--bad); } .esc .sev.high { background: var(--warn); } .esc .sev.medium { background: var(--accent); }
+  .esc .body { flex: 1; min-width: 0; }
+  .esc .body p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .esc .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+  /* feed */
+  /* CEO chat + departamentos */
+  .ceo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  .chat { display: flex; flex-direction: column; min-height: 380px; max-height: 520px; }
+  .chat-log { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 86%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg .deleg { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+  .chat-in { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+  .chat-in input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+  .chips button { font-size: 12px; padding: 5px 9px; }
+  .depts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: start; }
+  .dept { padding: 12px 14px; }
+  .dept h4 { margin: 0 0 2px; font-size: 14px; }
+  .dept .m { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .dept .ag { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .dept .ag span { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); }
+  .dept .ag span.err { border-color: var(--bad); color: var(--bad); }
+  .dept .ag span.paused { opacity: .5; text-decoration: line-through; }
+  .dept .n { font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .sub-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 12px 14px 0; }
+  .sub-head h3 { margin: 0; font-size: 15px; }
+  @media (max-width: 900px) { .ceo, .depts { grid-template-columns: 1fr; } }
+  .feed { display: flex; flex-direction: column; }
+  .feed-item { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+  .feed-item:last-child { border-bottom: 0; }
+  .feed-item .t { color: var(--muted); font-size: 12px; }
+  .feed-item .who { font-weight: 700; }
+  .feed-item .cost { color: var(--muted); font-size: 12px; }
+
+  .foot { margin-top: 36px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: var(--shadow); }
+  .demo-banner { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: 8px; background: var(--gold-soft); color: var(--ink); font-size: 13px; margin-top: 14px; border: 1px solid color-mix(in oklab, var(--gold) 35%, var(--line)); }
+  .demo-banner b { color: var(--gold); }
+  @media (prefers-reduced-motion: no-preference) { .toast { animation: rise .25s ease-out; } @keyframes rise { from { opacity: 0; transform: translate(-50%, 8px);} to { opacity: 1; transform: translate(-50%, 0);} } }
+  @media (max-width: 560px) { .funnel-row { grid-template-columns: 70px 1fr 90px; } h1 { font-size: 22px; } .kpi .val { font-size: 22px; } }
+</style>
+
+<div class="top">
+  <div class="wrap">
+    <div class="top-in">
+      <div class="brand">
+        <div class="brand-mark">DXB</div>
+        <div>
+          <h1 id="agency-name">Cérebro da Agência</h1>
+          <small id="subtitle">High Class Travel Experiences · 7 mercados · 8 departamentos · 24 agentes de IA · <span id="today"></span></small>
+        </div>
+      </div>
+      <div class="top-right">
+        <span class="pill" id="mode-pill"><span class="dot"></span><span id="mode-label">demonstração</span></span>
+        <select class="btn" id="range" aria-label="Período">
+          <option value="7">7 dias</option>
+          <option value="30" selected>30 dias</option>
+          <option value="90">90 dias</option>
+        </select>
+        <button class="btn" id="btn-briefing" title="Pede ao CEO-agente o briefing agora">Briefing agora</button>
+        <button class="btn ghost" id="theme" aria-label="Alternar tema">◐</button>
+      </div>
+    </div>
+    <nav class="subnav" aria-label="Seções">
+      <a href="#ceo">CEO</a><a href="#decisoes">Decisões</a><a href="#funil">Receita &amp; funil</a><a href="#aquisicao">Aquisição</a><a href="#experimentos">Experimentos</a><a href="#atendimento">Atendimento</a><a href="#campo">Campo &amp; renovações</a><a href="#conteudo">Conteúdo</a><a href="#operacao">Operação &amp; finanças</a><a href="#maquina">Saúde da máquina</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="demo-banner" id="demo-banner">
+    <div><b>Dados de demonstração.</b> Esta página é o dashboard do CEO tal como será servido pela máquina em <code>/</code>. Quando aberta pelo próprio cérebro, ela lê <code>/api/kpis</code>, <code>/api/decisions</code>, <code>/api/departments</code>, <code>/api/ceo/chat</code>, <code>/api/finance</code> e <code>/api/issues</code> ao vivo.</div>
+    <span class="pill">seed_demo.py · 30 dias</span>
+  </div>
+
+  <!-- CEO: fale com a empresa -->
+  <section id="ceo">
+    <div class="sec-head">
+      <h2>Fale com a sua empresa</h2>
+      <span class="meta">o CEO-agente responde com os dados reais e delega às áreas · 24/7</span>
+    </div>
+    <div class="ceo">
+      <div class="card chat">
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chips" id="chat-chips">
+          <button class="btn" data-q="Como foi o dia de ontem? Números e o que preciso decidir.">Resumo de ontem</button>
+          <button class="btn" data-q="Quais problemas estão abertos com clientes em viagem agora?">Problemas abertos</button>
+          <button class="btn" data-q="Quanto temos a receber vencido e qual a projeção de caixa 30 dias?">Caixa e cobrança</button>
+          <button class="btn" data-q="Marketing: crie uma campanha para o mercado indiano para Diwali com foco em famílias.">Pedir campanha</button>
+          <button class="btn" data-q="Prospecção: quantas agências contatamos esta semana e quais responderam?">Prospecção</button>
+          <button class="btn" data-q="Estratégia: cenário de +50% de tráfego nos 2 melhores mercados por 30 dias.">Cenário de tráfego</button>
+          <button class="btn" data-q="Analista de mercado: como alcançamos clientes e agências na Rússia e na Índia com o budget atual? O que já sabemos e quais experimentos propõe?">Rússia e Índia</button>
+        </div>
+        <form class="chat-in" id="chat-form">
+          <input id="chat-input" placeholder="Pergunte ou peça algo à empresa… (ex.: 'auditor, o que precisa melhorar no atendimento?')" autocomplete="off">
+          <button class="btn primary" type="submit">Enviar</button>
+        </form>
+      </div>
+      <div class="depts" id="depts"></div>
+    </div>
+  </section>
+
+  <!-- DECISÕES -->
+  <section id="decisoes">
+    <div class="sec-head">
+      <h2>Decisões que só você toma</h2>
+      <span class="meta" id="decisions-meta"></span>
+    </div>
+    <div class="decisions" id="decisions"></div>
+  </section>
+
+  <!-- KPIs -->
+  <section id="funil">
+    <div class="sec-head">
+      <h2>Receita &amp; funil</h2>
+      <span class="meta" id="kpi-meta"></span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="two" style="margin-top:12px">
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:6px"><h3>Reservas e receita por dia</h3><span class="meta">USD · barras = receita, linha = reservas</span></div>
+        <svg class="chart" id="chart-daily" viewBox="0 0 800 260" preserveAspectRatio="none" role="img" aria-label="Receita e reservas por dia"></svg>
+        <div class="legend"><span><i style="background:var(--accent-soft)"></i>Receita (USD)</span><span><i style="background:var(--gold)"></i>Reservas</span></div>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:6px"><h3>Funil por mercado</h3><span class="meta">leads → qualificados → reservas</span></div>
+        <div id="funnel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AQUISIÇÃO -->
+  <section id="aquisicao">
+    <div class="sec-head">
+      <h2>Aquisição</h2>
+      <span class="meta" id="acq-meta"></span>
+    </div>
+    <div class="card tbl-wrap">
+      <table id="acq-table">
+        <thead><tr><th>Mercado</th><th>Canais</th><th class="r">Gasto</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Reservas</th><th class="r">CAC</th><th class="r">Meta CAC</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ATENDIMENTO -->
+  <section id="experimentos">
+    <div class="sec-head">
+      <h2>Experimentos de tráfego</h2>
+      <span class="meta" id="exp-meta"></span>
+    </div>
+    <div class="card tbl-wrap">
+      <table id="exp-table"><thead><tr><th>Mercado</th><th>Experimento</th><th>Canal</th><th class="r">Budget</th><th class="r">Gasto</th><th class="r">Leads</th><th class="r">CPL · alvo</th><th class="r">Promessa (Jev)</th><th>Status</th><th>Aprendizado</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="atendimento">
+    <div class="sec-head">
+      <h2>Atendimento</h2>
+      <span class="meta" id="care-meta"></span>
+    </div>
+    <div class="two-even">
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:4px"><h3>Casos com humano agora</h3><span class="meta" id="esc-count"></span></div>
+        <div id="escalations"></div>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:4px"><h3>Por mercado</h3><span class="meta">conversas · escalonamento · resposta · CSAT</span></div>
+        <div class="tbl-wrap"><table id="care-table"><thead><tr><th>Mercado</th><th class="r">Conversas</th><th class="r">Escaladas</th><th class="r">1ª resposta</th><th class="r">CSAT</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAMPO & RENOVAÇÕES (o antigo quadro branco e o calendário do Admin) -->
+  <section id="campo">
+    <div class="sec-head">
+      <h2>Campo &amp; renovações</h2>
+      <span class="meta" id="field-meta"></span>
+    </div>
+    <div class="two">
+      <div class="card tbl-wrap">
+        <table id="field-table"><thead><tr><th>Hora</th><th>Serviço</th><th>Cliente</th><th class="r">Pax/malas</th><th>Carro</th><th>Motorista · guia</th><th>Status</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:4px"><h3>Vence em 120 dias</h3><span class="meta">licenças · seguros · Mulkiya · contratos</span></div>
+        <div class="tbl-wrap"><table id="renewals-table"><thead><tr><th>Item</th><th class="r">Vence</th><th class="r">Dias</th><th>Dono</th></tr></thead><tbody></tbody></table></div>
+        <div class="sec-head" style="margin:14px 0 4px"><h3>Frota</h3><span class="meta">odômetro · próxima revisão</span></div>
+        <div class="tbl-wrap"><table id="vehicles-table"><thead><tr><th>Veículo</th><th class="r">km</th><th class="r">Até a revisão</th><th class="r">Mulkiya</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTEÚDO -->
+  <section id="conteudo">
+    <div class="sec-head">
+      <h2>Conteúdo</h2>
+      <span class="meta">últimos 7 dias · publicado após compliance</span>
+    </div>
+    <div class="card tbl-wrap">
+      <table id="content-table"><thead><tr><th>Mercado</th><th class="r">Publicadas</th><th class="r">Em compliance</th><th class="r">Alcance</th><th class="r">Leads gerados</th><th>Melhor peça</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- MÁQUINA -->
+  <!-- OPERAÇÃO & FINANÇAS -->
+  <section id="operacao">
+    <div class="sec-head">
+      <h2>Operação &amp; finanças</h2>
+      <span class="meta" id="ops-meta"></span>
+    </div>
+    <div class="two">
+      <div class="card tbl-wrap">
+        <div class="sub-head"><h3>Problemas em resolução</h3><span class="meta">issues · Operacional a cada 15 min</span></div>
+        <table id="issues-table"><thead><tr><th>Sev.</th><th>Problema</th><th>Reserva</th><th>Status</th><th>Dono</th><th class="r">Prazo</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card tbl-wrap">
+        <div class="sub-head"><h3>Contas a receber em aberto</h3><span class="meta" id="ar-meta"></span></div>
+        <table id="ar-table"><thead><tr><th>Fatura</th><th>Cliente</th><th class="r">Aberto</th><th class="r">Vence</th><th class="r">Atraso</th><th class="r">Risco</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="two" style="margin-top:12px">
+      <div class="card tbl-wrap">
+        <div class="sub-head"><h3>Prospecção B2B</h3><span class="meta" id="prospect-meta"></span></div>
+        <table id="prospect-table"><thead><tr><th>Agência</th><th>País</th><th>Estágio</th><th class="r">Fit (Jev)</th><th>Última ação</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card tbl-wrap">
+        <div class="sub-head"><h3>Auditor — achados abertos</h3><span class="meta" id="audit-meta"></span></div>
+        <table id="audit-table"><thead><tr><th>Sev.</th><th>Área</th><th>Achado</th><th>Recomendação</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="maquina">
+    <div class="sec-head">
+      <h2>Saúde da máquina</h2>
+      <span class="meta" id="machine-meta"></span>
+    </div>
+    <div class="two">
+      <div class="card tbl-wrap">
+        <table id="agents-table"><thead><tr><th>Agente</th><th class="r">Execuções hoje</th><th class="r">Custo hoje</th><th>Orçamento diário</th><th class="r">Erros</th><th>Última execução</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card pad">
+        <div class="sec-head" style="margin-bottom:4px"><h3>Últimas ações</h3><span class="meta">agent_runs</span></div>
+        <div class="feed" id="feed"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>Licença DET <span id="license">DET-000000</span> · IATA 96029802 · o CEO-agente envia o briefing às 07:00 no WhatsApp · Jev decide, Claude conversa</span>
+    <span>Fontes dos dados: Postgres <code>kpis_daily</code>, <code>decisions</code>, <code>escalations</code>, <code>agent_runs</code></span>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, el = document) => el.querySelector(s);
+  const fmtUSD = n => 'USD ' + Math.round(n).toLocaleString('pt-BR');
+  const fmtN = n => Math.round(n).toLocaleString('pt-BR');
+  const pct = n => (Math.round(n * 10) / 10).toLocaleString('pt-BR') + '%';
+  const MARKET_NAMES = { BR: 'Brasil', IN: 'Índia', SA: 'Arábia Saudita/GCC', GB: 'Reino Unido', RU: 'Rússia/CIS', DE: 'DACH', US: 'EUA' };
+  const CHANNELS = { IN: 'Meta · Google · YouTube', SA: 'Snapchat · TikTok · Meta', GB: 'Google · Meta', BR: 'Meta · Google' };
+  const CAC_TARGET = { IN: 80, SA: 140, GB: 150, BR: 110, RU: 130, DE: 160, US: 200 };
+  const CPL_TARGET = { IN: 4, SA: 9, GB: 11, BR: 7 };
+
+  // tema
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('dxb_theme'); if (t) root.setAttribute('data-theme', t); } catch (e) {}
+  $('#theme').addEventListener('click', () => {
+    const cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('dxb_theme', next); } catch (e) {}
+    render(state);
+  });
+  $('#today').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+  // ───────── dados de demonstração (determinísticos; espelham scripts/seed_demo.py) ─────────
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function demoData(days) {
+    const r = rng(20260921);
+    const markets = { IN: .35, SA: .25, GB: .25, BR: .15 };
+    const ticket = { BR: 2200, IN: 1100, SA: 2800, GB: 2500 };
+    const daily = [], byMarket = {};
+    for (const m in markets) byMarket[m] = { market_code: m, leads: 0, qualified: 0, quotes: 0, bookings: 0, revenue_usd: 0, margin_usd: 0, ad_spend_usd: 0, conversations: 0, escalations: 0, first_response_p50_s: 0, csat: 0, n: 0, bCarry: 0, eCarry: 0 };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < days; i++) {
+      const d = new Date(today); d.setDate(today.getDate() - (days - 1 - i));
+      const ramp = 0.5 + 0.5 * i / Math.max(1, days - 1);
+      const row = { day: d, leads_new: 0, leads_qualified: 0, quotes_sent: 0, bookings: 0, revenue_usd: 0, margin_usd: 0, ad_spend_usd: 0, conversations: 0, escalations: 0 };
+      for (const m in markets) {
+        const bm = byMarket[m];
+        const spend = 135 * markets[m] * (0.85 + r() * 0.2);
+        const paid = spend / CPL_TARGET[m] * (0.8 + r() * 0.4);          // leads de mídia ao CPL-alvo
+        const organic = paid * (0.4 + ramp * 0.6);                        // conteúdo, SEO e indicações crescendo com a recuperação
+        const leads = Math.max(1, Math.round((paid + organic) * (0.75 + ramp * 0.35)));
+        const qualified = Math.round(leads * (0.38 + r() * 0.1));
+        const quotes = Math.round(qualified * (0.6 + r() * 0.1));
+        bm.bCarry += quotes * (0.12 + r() * 0.06); const bookings = Math.floor(bm.bCarry); bm.bCarry -= bookings;
+        const revenue = bookings * ticket[m] * (0.9 + r() * 0.2);
+        const margin = revenue * (0.14 + r() * 0.05);
+        bm.eCarry += leads * (0.02 + r() * 0.022); const esc = Math.floor(bm.eCarry); bm.eCarry -= esc;
+        bm.leads += leads; bm.qualified += qualified; bm.quotes += quotes; bm.bookings += bookings; bm.revenue_usd += revenue; bm.margin_usd += margin; bm.ad_spend_usd += spend; bm.conversations += leads; bm.escalations += esc;
+        bm.first_response_p50_s += 30 + r() * 30; bm.csat += 4.3 + r() * 0.6; bm.n++;
+        row.leads_new += leads; row.leads_qualified += qualified; row.quotes_sent += quotes; row.bookings += bookings; row.revenue_usd += revenue; row.margin_usd += margin; row.ad_spend_usd += spend; row.conversations += leads; row.escalations += esc;
+      }
+      daily.push(row);
+    }
+    for (const m in byMarket) { const b = byMarket[m]; b.first_response_p50_s /= b.n; b.csat /= b.n; b.cac_usd = b.bookings ? b.ad_spend_usd / b.bookings : null; b.cac_target = CAC_TARGET[m]; b.market_name = MARKET_NAMES[m]; }
+    const sum = k => daily.reduce((a, x) => a + x[k], 0);
+    const prevFactor = 0.62; // período anterior: recuperação ainda no início
+    const previous = { leads: sum('leads_new') * prevFactor, bookings: sum('bookings') * prevFactor, revenue_usd: sum('revenue_usd') * prevFactor, ad_spend_usd: sum('ad_spend_usd') * 0.9 };
+    return { days, daily, by_market: Object.values(byMarket).sort((a, b) => b.revenue_usd - a.revenue_usd), previous };
+  }
+  const DEMO_DECISIONS = [
+    { id: 'd1', kind: 'budget_increase', market_code: 'IN', amount_usd: 420, requested_by: 'ai:paid_media', created_at: '-2h',
+      context: 'Índia está com CAC de USD 62 (meta 80) há 9 dias e o teto diário de mídia está limitando. Pedido: +USD 30/dia por 14 dias.',
+      recommendation: 'Aprovar. +USD 420 devem render ~7 reservas extras (≈ USD 7.700 de receita, USD 1.230 de margem).' },
+    { id: 'd2', kind: 'discount', market_code: 'SA', amount_usd: 9800, requested_by: 'ai:consultant', created_at: '-40min',
+      context: 'Cotação de USD 9.800 para família saudita de 8 pessoas no Eid al-Adha; cliente pediu 8% de desconto. Margem após desconto: 13,1%.',
+      recommendation: 'Aprovar. Margem acima de 12%, datas confirmadas, fornecedor com disponibilidade. Registrar como regra: até 8% em grupos ≥ 6 pax com margem ≥ 12%.' },
+    { id: 'd3', kind: 'new_supplier', market_code: null, amount_usd: null, requested_by: 'ai:suppliers_pricing', created_at: '-1d',
+      context: 'Rayna Tours pediu cadastro como fornecedor de experiências. Licença DET válida até 03/2027, tarifas 6–9% abaixo da DMC atual em safari e Burj Khalifa.',
+      recommendation: 'Aprovar em teste com 3 produtos por 30 dias; comparar confirmação em ≤ 2h e avaliações antes de ampliar.' },
+  ];
+  const DEMO_ESCALATIONS = [
+    { id: 'e1', severity: 'high', trigger_id: 'payment_threshold', market_code: 'GB', display_name: 'Sarah W.', channel: 'email', minutes_open: 38,
+      summary: 'Pede reembolso de USD 640 (transfer + Aquaventure) por mudança de voo da BA para 26/out. Dentro da política de remarcação, acima do limite autônomo.', suggested_action: 'Aprovar reembolso parcial ou oferecer crédito + upgrade de hotel; cliente é recorrente (2 viagens).' },
+    { id: 'e2', severity: 'medium', trigger_id: 'explicit_request', market_code: 'IN', display_name: 'Rohit & Ananya', channel: 'whatsapp', minutes_open: 12,
+      summary: 'Casal em lua de mel pediu "falar com uma pessoa" para confirmar jantar surpresa no deserto (pedido especial: bolo sem ovo).', suggested_action: 'Ligar para o DMC e confirmar; responder em ≤ 4h no horário de Dubai.' },
+  ];
+  const DEMO_AGENTS = [
+    ['consultant', 214, 19.4, 25, 0, '2 min'], ['content_studio', 4, 7.1, 12, 0, '06:14'], ['paid_media', 3, 1.2, 3, 0, '12:00'], ['market_intel', 4, 2.3, 3, 0, '05:09'],
+    ['ceo', 3, 1.9, 6, 0, '07:00'], ['auditor', 2, 2.4, 4, 0, '02:11'], ['social_manager', 9, 1.6, 5, 0, '22:00'], ['market_analyst', 1, 2.1, 4, 0, 'ter 10:00'], ['sysops', 288, 0.1, 1, 0, '2 min'], ['partner_manager', 2, 0.8, 3, 0, '11:00'], ['legal_compliance', 1, 1.2, 3, 0, 'sex 10:00'], ['strategist', 1, 1.1, 3, 0, '10:00'], ['prospector', 6, 2.4, 4, 0, '09:30'], ['compliance', 5, 0.9, 2, 0, '06:31'], ['escalation_router', 214, 0.6, 1, 0, '2 min'],
+    ['booking_payments', 6, 0.8, 2, 1, '11:42'], ['concierge', 36, 1.1, 3, 0, '5 min'], ['suppliers_pricing', 1, 0.7, 2, 0, '09:03'], ['finance', 0, 0, 1, 0, 'ontem 23:00'], ['seo_site', 0, 0, 2, 0, 'seg 08:00'],
+  ];
+  const DEMO_FEED = [
+    ['12:41', 'consultant', 'IN', 'Cotação DXB-2026-A41C enviada · lua de mel 5 noites · USD 2.640', 0.09],
+    ['12:38', 'escalation_router', 'GB', 'Gatilho payment_threshold → caso aberto no Chatwoot', 0.002],
+    ['12:30', 'concierge', 'SA', 'Lembrete D-1 enviado: família Al-Otaibi, transfer 14:20', 0.03],
+    ['12:00', 'paid_media', '—', 'Realocado USD 18/dia de GB (CAC 171) para IN (CAC 62); 2 criativos novos em compliance', 0.41],
+    ['11:42', 'booking_payments', 'BR', 'Fornecedor sem resposta há 130 min (Reserva DXB-2026-7F02) → low_confidence', 0.05],
+    ['09:03', 'suppliers_pricing', '—', '3 hotéis marcados low_occupancy (Downtown 5★ −18% na semana)', 0.7],
+    ['07:00', 'ceo', '—', 'Briefing enviado ao CEO · 3 decisões pendentes', 0.8],
+    ['06:31', 'compliance', 'IN', '5 peças revisadas: 4 aprovadas, 1 corrigida ("a partir de" faltando)', 0.2],
+    ['06:14', 'content_studio', 'SA', 'Lote do dia: 3 posts, 1 reel, 1 e-mail (pilar: novidades para quem já veio)', 1.8],
+    ['05:09', 'market_intel', 'GB', 'FCDO sem mudança; BA confirma retomada 25/out; DET: agosto 869 mil visitantes', 0.6],
+  ];
+  const DEMO_FIELD = {
+    services: [
+      ['07:30', 'transfer_in', 'Família Oliveira (4)', '4/6', 'GMC Yukon 2025', 'Mumtaz', 'done', false],
+      ['09:00', 'tour', 'Casal Martins · Abu Dhabi 10h', '2/0', 'Cadillac Escalade 2023', 'Abdul · guia Fátima (PT)', 'onboard', true],
+      ['14:00', 'meet_greet', 'Al-Otaibi (8) · chegada EK', '8/9', 'Sprinter terceirizado', 'motorista parceiro · guia Noura (AR)', 'confirmed_by_driver', false],
+      ['16:30', 'abaya', 'Retorno 3 abayas → lavanderia', '—', 'GAC M8 2026', 'Mumtaz', 'planned', false],
+      ['19:45', 'transfer_out', 'Sarah W. (2) · voo EK 003', '2/3', 'GAC M8 2026', 'Mumtaz', 'planned', false],
+    ],
+    vehicles: [['Cadillac Escalade 2023', 41230, 8770, '12/02/2027'], ['GMC Yukon 2025', 18640, 1360, '21/10/2026'], ['GAC M8 2026', 9120, 880, '30/03/2027']],
+    hours: [['Abdul Rehman', 152, 11], ['Mumtaz Khokhar', 148, 6]],
+  };
+  const DEMO_RENEWALS = [
+    ['Mulkiya GMC Yukon 2025 (EE 65196)', '2026-10-21', 'fleet_dispatcher', 'pending'],
+    ['Dedetização (Akkad) — contrato anual', '2026-11-22', 'admin_renewals', 'quoted'],
+    ['Limpeza do escritório (Juma Salmin)', '2026-12-04', 'admin_renewals', 'pending'],
+    ['Filtros de água (Danube)', '2026-12-15', 'admin_renewals', 'pending'],
+    ['PO Box 5001505', '2026-12-31', 'admin_renewals', 'pending'],
+    ['Establishment Card', '2026-12-31', 'pro', 'pending'],
+  ];
+  const DEMO_CONTENT = [
+    ['IN', 21, 4, 48200, 19, 'Reel "5 dias em Dubai por ₹1,4L pp — sem aéreo"'], ['SA', 19, 3, 61900, 14, 'Post "O que há de novo em Dubai para quem já veio 10x"'],
+    ['GB', 18, 2, 22400, 9, 'E-mail "BA volta em 25/out: o plano de inverno"'], ['BR', 20, 3, 39800, 12, 'Reel "Dubai em 2026, sem drama: os números"'],
+  ];
+
+  const DEMO_DEPTS = [
+    ['ceo_office', 'CEO (gabinete)', 'Responde ao CEO, delega, gere os agentes; SysOps vigia a máquina', ['ceo', 'sysops']],
+    ['marketing', 'Marketing', 'Campanhas, redes sociais e mídia paga por mercado', ['content_studio', 'social_manager', 'paid_media', 'seo_site']],
+    ['strategy', 'Estratégia', 'Pacotes, cenários, playbooks e experimentos por mercado', ['strategist', 'market_intel', 'market_analyst']],
+    ['prospecting', 'Prospecção & Parcerias', 'Agências no mundo → parceiras que rendem (net, comissão, relação)', ['prospector', 'partner_manager']],
+    ['customer_care', 'Atendimento', 'WhatsApp e Telegram 24/7, vendas, pós-venda e grupos/eventos (HCB1)', ['escalation_router', 'consultant', 'concierge', 'mice_events']],
+    ['operations', 'Operacional', 'Reservas, emissão, resolução, campo, renovações e pessoas', ['booking_payments', 'suppliers_pricing', 'fleet_dispatcher', 'admin_renewals', 'people_ops']],
+    ['audit', 'Auditor & Compliance', 'Fluxos, SLAs, notas, melhorias; conteúdo; jurídico e dados', ['auditor', 'compliance', 'legal_compliance']],
+    ['finance', 'Financeiro', 'Caixa, cobrança, A/R e A/P', ['finance']]];
+  const DEMO_ISSUES = [
+    ['high', 'Ingresso Burj Khalifa 148 não emitido (portal Emaar fora)', 'DXB-2026-000211', 'in_progress', 'booking_payments', '1h40'],
+    ['medium', 'Hotel confirmou vista mar em vez de Burj (família Mehta)', 'DXB-2026-000204', 'waiting_supplier', 'booking_payments', '18h'],
+    ['medium', 'Cliente perdeu voucher do safari; reenviar + confirmar pickup', 'DXB-2026-000209', 'resolved', 'concierge', '—'],
+    ['low', 'Abaya tamanho M em falta para a mesquita de sábado', 'DXB-2026-000215', 'assigned_human', 'ops_resolver_1', '2d']];
+  const DEMO_AR = [
+    ['HC-2026-000118', 'Fam. Oliveira (BR)', 2940, '28/09', 6, 0.62], ['HC-2026-000131', 'Al Rashid (SA)', 5600, '02/10', 2, 0.21],
+    ['HC-2026-000127', 'Mehta (IN)', 1260, '05/10', 0, 0.12], ['HC-2026-000134', 'Clarke (GB)', 3180, '09/10', 0, 0.08]];
+  const DEMO_PROSPECTS = [
+    ['Viagens Elite', 'BR', 'call_scheduled', 0.86, 'respondeu: interessada'], ['Luxe Journeys Mumbai', 'IN', 'contacted', 0.79, 'passo 2 enviado'],
+    ['Travel Counsellors – Leeds', 'GB', 'replied', 0.71, 'pergunta sobre comissão'], ['Reisebüro Sonnenklar', 'DE', 'identified', 0.64, 'cadastrada hoje'],
+    ['Al Tayyar Travel', 'SA', 'partner', 0.9, 'parceira · 10%']];
+  const DEMO_AUDIT = [
+    ['high', 'operations', '3 reservas confirmadas sem emissão registrada', 'Adicionar request_issuance ao passo 2 do confirm_pending e checar em pending_issuances(2)'],
+    ['medium', 'customer_care', 'Follow-up D+3 não enviado em 4 leads cotados (RU)', 'schedule_followup obrigatório após render_quote_pdf — trecho de prompt proposto'],
+    ['low', 'marketing', '2 peças SA citam preço sem "a partir de"', 'Jev moderate já sinaliza; Compliance deve corrigir em vez de aprovar']];
+  const DEMO_EXPERIMENTS = [
+    ['IN', 'Click-to-WhatsApp famílias (EN+HI)', 'meta', 350, 212, 61, 3.5, 4, 0.78, 'running', ''],
+    ['IN', 'Busca "Dubai package from <cidade>"', 'google_search', 300, 300, 48, 6.25, 5, 0.66, 'lost', 'CPL 25% acima do alvo; termos de cidade Tier-1 caros — testar Tier-2 e hindi'],
+    ['SA', 'Snapchat famílias Riade · pós-Eid', 'snapchat', 400, 187, 24, 7.8, 9, 0.71, 'running', ''],
+    ['RU', 'Telegram: 3 canais de viagem (ERID)', 'telegram_ads', 450, 0, 0, null, 10, 0.58, 'proposed', 'aguarda decisão da CEO: intermediário com ERID'],
+    ['GB', 'Reels half-term + landing em inglês britânico', 'meta', 300, 300, 39, 7.7, 11, 0.74, 'won', 'Escalado: +30%/semana enquanto CPL ≤ 11']];
+  const DEMO_CHAT = [
+    ['user', 'Como foi o dia de ontem?'],
+    ['ai', 'Ontem: 7 reservas (USD 18.4k, margem 15,8%), 212 conversas em 6 idiomas, 1ª resposta p50 9 s, 2 escalonamentos (1 resolvido). Mídia USD 131 → 41 leads (CPL 3,2). Caixa fechou em USD 61.2k; A/R vencido USD 2.9k (1 fatura, lembrete enviado).\nPendências suas: desconto 12% para o grupo Al Rashid (recomendo aprovar — margem fica 13,1%) e novo fornecedor de iates.\nRisco: portal Emaar instável desde 14h — Operacional já emitiu 3 ingressos via Turning Point.', []],
+    ['user', 'Marketing: campanha Diwali para famílias indianas.'],
+    ['ai', 'Disparei para o Marketing: content_studio.campaign_brief (IN, Diwali · famílias · 5 noites · resort com clube infantil) e paid_media.scenario para dimensionar o teto. Brief chega em ~20 min no painel Conteúdo; o Compliance revisa antes de qualquer publicação.', [{ agent: 'content_studio', task: 'campaign_brief', market_code: 'IN' }, { agent: 'paid_media', task: 'scenario', market_code: 'IN' }]]];
+
+  // ───────── estado + fonte (ao vivo se a máquina responder; senão, demo) ─────────
+  let state = { mode: 'demo', days: 30, data: null, decisions: [], escalations: [], agents: [], feed: [], content: [], field: DEMO_FIELD, renewals: DEMO_RENEWALS };
+  async function tryLive(days) {
+    try {
+      const k = await fetch(`/api/kpis?days=${days}`, { credentials: 'include' });
+      if (!k.ok) throw new Error(k.status);
+      const kpis = await k.json();
+      // cada endpoint é opcional: um erro não derruba o modo ao vivo (fica vazio e aparece no console)
+      const j = async (u, fallback) => { try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return await r.json(); } catch (e) { console.warn('endpoint falhou', u, e.message); return fallback; } };
+      const [decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments] = await Promise.all([
+        j('/api/decisions', []), j('/api/escalations', []), j('/api/agents', []), j('/api/feed?limit=12', []), j('/api/content', []),
+        j('/api/field', { services: [], vehicles: [], driver_hours_month: [] }), j('/api/renewals', []),
+        j('/api/departments', []), j('/api/ceo/chat?limit=30', []), j('/api/issues', []),
+        j('/api/finance', { receivables: [], payables: [], cashflow: [], totals: {} }), j('/api/prospecting', { funnel: [], recent: [], partners: [] }),
+        j('/api/audit', { findings: [], sla: [], qa_7d: null }), j('/api/experiments', [])]);
+      (kpis.daily || []).forEach(d => d.day = new Date(d.day));
+      return { kpis, decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments };
+    } catch (e) { console.warn('modo demo: /api/kpis indisponível', e.message); return null; }
+  }
+  async function load(days) {
+    const live = await tryLive(days);
+    if (live) {
+      state = { mode: 'live', days, data: live.kpis, decisions: live.decisions, escalations: live.escalations.map(e => ({ ...e, minutes_open: (Date.now() - new Date(e.opened_at)) / 60000 })),
+        agents: live.agents.map(a => [a.agent, a.runs, +a.cost_usd || 0, a.cap_usd, a.errors, a.last_run ? new Date(a.last_run).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—']),
+        feed: live.feed.map(f => [new Date(f.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), f.agent, f.market_code || '—', f.output_summary || f.status, +f.cost_usd || 0]),
+        content: [],
+        field: { services: live.field.services.map(s => [String(s.start_time).slice(0, 5), s.kind, s.client_name || '', `${s.pax || ''}/${s.bags || 0}`, s.vehicle || 'terceirizado', [s.driver, s.guide ? 'guia ' + s.guide : null].filter(Boolean).join(' · '), s.status, !!s.vip]),
+                 vehicles: live.field.vehicles.map(v => [v.name, +v.odometer_km || 0, v.km_to_service, v.registration_expiry ? new Date(v.registration_expiry).toLocaleDateString('pt-BR') : '—']),
+                 hours: live.field.driver_hours_month.map(h => [h.name, +h.regular, +h.extra]) },
+        renewals: live.renewals.map(r => [r.name, String(r.due).slice(0, 10), r.owner, r.status]),
+        depts: live.depts.map(d => [d.id, d.label, d.mission, d.agents.map(a => ({ name: a.name, runs: a.runs || 0, errors: a.errors || 0, paused: a.paused })), d.runs, d.cost_usd]),
+        chat: live.chat.map(m => [m.role === 'user' ? 'user' : 'ai', m.body, m.delegations || []]),
+        issues: live.issues.map(i => [i.severity, i.title, i.booking_ref || '—', i.status, i.assigned_human || i.owner_agent || '—', i.due_at ? fmtDue(i.due_at) : '—']),
+        ar: live.finance.receivables.map(r => [r.invoice_no, r.display_name || '—', +r.open_usd, new Date(r.due_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), Math.max(0, +r.days_overdue || 0), r.jev_risk == null ? null : +r.jev_risk]),
+        arTotals: live.finance.totals,
+        prospects: live.prospecting.recent.map(p => [p.name, p.country, p.stage, p.jev_fit == null ? null : +p.jev_fit, (p.direction === 'in' ? 'respondeu: ' + (p.jev_reply_class || '') : 'contato enviado')]),
+        audit: live.audit.findings.map(f => [f.severity, f.area, f.title, f.recommendation || '']),
+        experiments: live.experiments.map(e => [e.market_code, e.name, e.channel, +e.budget_usd, +e.spend_actual_usd, +e.leads, e.cpl_usd == null ? null : +e.cpl_usd, +e.success_target, e.jev_promise == null ? null : +e.jev_promise, e.status, e.learning || '']) };
+      $('#demo-banner').hidden = true; $('#mode-pill').classList.add('live'); $('#mode-label').textContent = 'ao vivo';
+    } else {
+      state = { mode: 'demo', days, data: demoData(days), decisions: DEMO_DECISIONS.map(d => ({ ...d })), escalations: DEMO_ESCALATIONS, agents: DEMO_AGENTS, feed: DEMO_FEED, content: DEMO_CONTENT, field: DEMO_FIELD, renewals: DEMO_RENEWALS,
+        depts: DEMO_DEPTS.map(([id, label, mission, ags], i) => [id, label, mission, ags.map((a, k) => ({ name: a, runs: [3, 9, 2, 6, 214, 48, 7, 4][i] + k, errors: 0, paused: false })), [3, 14, 2, 6, 380, 61, 9, 4][i], [1.9, 6.2, 1.1, 2.4, 11.8, 3.1, 2.6, 0.6][i]]),
+        chat: state.chat && state.chat.length ? state.chat : DEMO_CHAT, issues: DEMO_ISSUES, ar: DEMO_AR, arTotals: { ar_open: 12980, ar_overdue: 2940, ap_30d: 9400 }, prospects: DEMO_PROSPECTS, audit: DEMO_AUDIT, experiments: DEMO_EXPERIMENTS };
+    }
+    render(state);
+  }
+
+  function fmtDue(iso) { const m = (new Date(iso) - Date.now()) / 60000; if (m < 0) return 'vencido'; if (m < 60) return Math.round(m) + 'min'; if (m < 48 * 60) return Math.round(m / 60) + 'h'; return Math.round(m / 1440) + 'd'; }
+  const SEV = s => `<span class="chip ${s === 'critical' || s === 'high' ? 'bad' : s === 'medium' ? 'warn' : 'neutral'}">${s}</span>`;
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function renderCeo(s) {
+    $('#chat-log').innerHTML = (s.chat || []).map(([role, body, deleg]) => `<div class="msg ${role}">${esc(body)}${deleg && deleg.length ? `<span class="deleg">→ ${deleg.map(d => d.agent + '.' + d.task + (d.market_code ? ' (' + d.market_code + ')' : '')).join(' · ')}</span>` : ''}</div>`).join('');
+    $('#chat-log').scrollTop = 1e9;
+    $('#depts').innerHTML = (s.depts || []).map(([id, label, mission, ags, runs, cost]) => `<div class="card dept"><h4>${label}</h4><div class="m">${mission}</div>
+      <div class="ag">${ags.map(a => `<span class="${a.errors ? 'err' : ''} ${a.paused ? 'paused' : ''}" title="${a.runs} execuções hoje${a.errors ? ' · ' + a.errors + ' erro(s)' : ''}${a.paused ? ' · pausado' : ''}">${a.name}</span>`).join('')}</div>
+      <div class="n">${fmtN(runs)} execuções hoje · ${fmtUSD(cost)}</div></div>`).join('');
+    $('#issues-table tbody').innerHTML = (s.issues || []).map(([sev, title, ref, st, owner, due]) => `<tr><td>${SEV(sev)}</td><td>${esc(title)}</td><td class="mono">${ref}</td><td>${st}</td><td class="mono">${owner}</td><td class="r">${due}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Nenhum problema aberto.</td></tr>';
+    $('#ops-meta').textContent = `${(s.issues || []).filter(i => i[3] !== 'resolved').length} problemas abertos · ${(s.issues || []).filter(i => i[3] === 'assigned_human').length} com pessoa em campo`;
+    $('#ar-table tbody').innerHTML = (s.ar || []).map(([inv, who, open, due, late, risk]) => `<tr><td class="mono">${inv}</td><td>${esc(who)}</td><td class="r">${fmtUSD(open)}</td><td class="r">${due}</td><td class="r">${late ? `<span class="chip ${late > 5 ? 'bad' : 'warn'}">${late}d</span>` : '—'}</td><td class="r">${risk == null ? '—' : pct(risk * 100)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Nada em aberto.</td></tr>';
+    const t = s.arTotals || {}; $('#ar-meta').textContent = `aberto ${fmtUSD(+t.ar_open || 0)} · vencido ${fmtUSD(+t.ar_overdue || 0)} · a pagar 30d ${fmtUSD(+t.ap_30d || 0)}`;
+    $('#prospect-table tbody').innerHTML = (s.prospects || []).map(([n, c, st, fit, last]) => `<tr><td>${esc(n)}</td><td class="mono">${c}</td><td>${st}</td><td class="r">${fit == null ? '—' : pct(fit * 100)}</td><td>${esc(last)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Prospecção ainda não rodou.</td></tr>';
+    $('#prospect-meta').textContent = `${(s.prospects || []).filter(p => p[2] === 'partner').length} parceiras · ${(s.prospects || []).length} movimentos recentes`;
+    $('#audit-table tbody').innerHTML = (s.audit || []).map(([sev, area, title, rec]) => `<tr><td>${SEV(sev)}</td><td class="mono">${area}</td><td>${esc(title)}</td><td style="color:var(--muted)">${esc(rec)}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">Sem achados abertos.</td></tr>';
+    $('#exp-table tbody').innerHTML = (s.experiments || []).map(([mk, name, ch, bud, sp, leads, cpl, tgt, prom, st, learn]) => `<tr><td class="mono">${mk}</td><td>${esc(name)}</td><td class="mono">${ch || '—'}</td><td class="r">${fmtUSD(bud)}</td><td class="r">${fmtUSD(sp)}</td><td class="r">${fmtN(leads)}</td><td class="r">${cpl == null ? '—' : 'USD ' + cpl.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} · ${tgt}</td><td class="r">${prom == null ? '—' : pct(prom * 100)}</td><td><span class="chip ${st === 'won' ? 'good' : st === 'lost' ? 'bad' : st === 'running' ? 'warn' : 'neutral'}">${st}</span></td><td style="color:var(--muted)">${esc(learn)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">Nenhum experimento ainda — o Analista de Mercado propõe às terças.</td></tr>';
+    const ex = s.experiments || []; $('#exp-meta').textContent = `${ex.filter(e => e[9] === 'running').length} rodando · ${ex.filter(e => e[9] === 'won').length} vencedores · ${ex.filter(e => e[9] === 'lost').length} perdidos · semi-autônomo dentro de 25% do budget do mercado`;
+    $('#audit-meta').textContent = `${(s.audit || []).length} achados abertos · auditoria 02:00 · SLA a cada hora`;
+  }
+
+  async function sendChat(q) {
+    if (!q.trim()) return;
+    state.chat = [...(state.chat || []), ['user', q]]; renderCeo(state);
+    if (state.mode === 'live') {
+      state.chat = [...state.chat, ['ai', '…', []]]; renderCeo(state);
+      try {
+        const r = await fetch('/api/ceo/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: q }) }).then(r => r.json());
+        state.chat[state.chat.length - 1] = ['ai', r.reply || 'Sem resposta.', r.delegations || []];
+      } catch (e) { state.chat[state.chat.length - 1] = ['ai', 'Falha ao falar com o CEO-agente. Tente de novo.', []]; }
+    } else {
+      state.chat = [...state.chat, ['ai', 'Na máquina, esta pergunta vai para POST /api/ceo/chat: o CEO-agente lê company_snapshot, responde com os números reais e, se for um pedido, usa delegate_task para a área certa.', []]];
+    }
+    renderCeo(state);
+  }
+
+  // ───────── render ─────────
+  function delta(cur, prev, invert) {
+    if (!prev) return { cls: 'flat', txt: '—' };
+    const d = (cur - prev) / prev * 100; const up = d >= 0;
+    const good = invert ? !up : up;
+    return { cls: Math.abs(d) < 0.5 ? 'flat' : (good ? 'up' : 'down'), txt: (up ? '▲ ' : '▼ ') + pct(Math.abs(d)) + ' vs período anterior' };
+  }
+  function spark(values, color) {
+    const w = 200, h = 28, max = Math.max(...values, 1), min = Math.min(...values, 0);
+    const pts = values.map((v, i) => [i / (values.length - 1) * w, h - 2 - (v - min) / (max - min || 1) * (h - 4)]);
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L ${w} ${h} L 0 ${h} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.5" fill="${color}"/></svg>`;
+  }
+  function render(s) {
+    renderCeo(s);
+    const D = s.data, daily = D.daily, sum = k => daily.reduce((a, x) => a + (+x[k] || 0), 0);
+    const leads = sum('leads_new'), qualified = sum('leads_qualified'), bookings = sum('bookings'), revenue = sum('revenue_usd'), margin = sum('margin_usd'), spend = sum('ad_spend_usd'), convs = sum('conversations'), escs = sum('escalations');
+    const frt = D.by_market.reduce((a, m) => a + (+m.first_response_p50_s || 0), 0) / Math.max(1, D.by_market.length);
+    const css = getComputedStyle(document.documentElement), accent = css.getPropertyValue('--accent').trim(), gold = css.getPropertyValue('--gold').trim();
+    const dRev = delta(revenue, +D.previous.revenue_usd), dBook = delta(bookings, +D.previous.bookings), dLeads = delta(leads, +D.previous.leads);
+    const cac = bookings ? spend / bookings : 0, dCac = delta(cac, D.previous.bookings ? +D.previous.ad_spend_usd / +D.previous.bookings : 0, true);
+    const escRate = convs ? escs / convs * 100 : 0;
+    const kpis = [
+      { label: 'Reservas', val: fmtN(bookings), d: dBook, target: `meta ${s.days === 30 ? '60' : s.days === 7 ? '14' : '180'} no período`, series: daily.map(x => +x.bookings), color: gold },
+      { label: 'Receita', val: fmtUSD(revenue), d: dRev, target: `ticket médio ${bookings ? fmtUSD(revenue / bookings) : '—'}`, series: daily.map(x => +x.revenue_usd), color: accent },
+      { label: 'Margem bruta', val: pct(revenue ? margin / revenue * 100 : 0), d: { cls: margin / revenue >= 0.16 ? 'up' : 'down', txt: fmtUSD(margin) + ' · meta 16%' }, target: 'após custo de fornecedores', series: daily.map(x => +x.margin_usd), color: accent },
+      { label: 'Leads qualificados', val: fmtN(qualified), d: dLeads, target: `${fmtN(leads)} leads · ${pct(leads ? qualified / leads * 100 : 0)} qualificados`, series: daily.map(x => +x.leads_qualified), color: accent },
+      { label: 'CAC por reserva', val: fmtUSD(cac), d: dCac, target: 'meta < USD 120 · mídia ' + fmtUSD(spend), series: daily.map(x => +x.ad_spend_usd), color: gold },
+      { label: 'Escalonamento humano', val: pct(escRate), d: { cls: escRate < 4 ? 'up' : 'down', txt: `${fmtN(escs)} de ${fmtN(convs)} conversas · meta < 4%` }, target: `1ª resposta mediana ${Math.round(frt)} s · meta < 60 s`, series: daily.map(x => +x.escalations), color: accent },
+    ];
+    $('#kpis').innerHTML = kpis.map(k => `<div class="kpi card lift"><span class="eyebrow">${k.label}</span><div class="val num">${k.val}</div><div class="delta ${k.d.cls}">${k.d.txt}</div><div class="target">${k.target}</div>${spark(k.series, k.color)}</div>`).join('');
+    $('#kpi-meta').textContent = `${s.days} dias · ${daily[0].day.toLocaleDateString('pt-BR')} – ${daily.at(-1).day.toLocaleDateString('pt-BR')}`;
+
+    // gráfico diário
+    const svg = $('#chart-daily'); const W = 800, H = 260, padL = 54, padR = 40, padT = 14, padB = 30;
+    const maxRev = Math.max(...daily.map(x => +x.revenue_usd), 1), maxB = Math.max(...daily.map(x => +x.bookings), 1);
+    const iw = W - padL - padR, ih = H - padT - padB, bw = iw / daily.length;
+    const gridColor = css.getPropertyValue('--chart-grid').trim(), muted = css.getPropertyValue('--muted').trim(), soft = css.getPropertyValue('--accent-soft').trim();
+    let out = '';
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) { const y = padT + ih - ih * i / ticks; out += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="${gridColor}"/><text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="${muted}" font-family="IBM Plex Mono, monospace">${fmtN(maxRev * i / ticks / 1000)}k</text>`; }
+    daily.forEach((x, i) => { const h = (+x.revenue_usd) / maxRev * ih; out += `<rect x="${padL + i * bw + bw * 0.18}" y="${padT + ih - h}" width="${bw * 0.64}" height="${h}" rx="2" fill="${soft}"><title>${x.day.toLocaleDateString('pt-BR')} · ${fmtUSD(x.revenue_usd)} · ${x.bookings} reservas</title></rect>`; });
+    const line = daily.map((x, i) => `${i ? 'L' : 'M'}${(padL + i * bw + bw / 2).toFixed(1)} ${(padT + ih - (+x.bookings) / maxB * ih).toFixed(1)}`).join(' ');
+    out += `<path d="${line}" fill="none" stroke="${gold}" stroke-width="2" stroke-linejoin="round"/>`;
+    daily.forEach((x, i) => { if (i === daily.length - 1) out += `<circle cx="${padL + i * bw + bw / 2}" cy="${padT + ih - (+x.bookings) / maxB * ih}" r="4" fill="${gold}"/>`; });
+    for (let i = 0; i <= ticks; i++) { const y = padT + ih - ih * i / ticks; out += `<text x="${W - padR + 8}" y="${y + 4}" font-size="11" fill="${gold}" font-family="IBM Plex Mono, monospace">${Math.round(maxB * i / ticks)}</text>`; }
+    const step = Math.ceil(daily.length / 6);
+    daily.forEach((x, i) => { if (i % step === 0 || i === daily.length - 1) out += `<text x="${padL + i * bw + bw / 2}" y="${H - 10}" text-anchor="middle" font-size="11" fill="${muted}" font-family="Manrope, sans-serif">${x.day.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</text>`; });
+    svg.innerHTML = out;
+
+    // funil
+    const maxLeads = Math.max(...D.by_market.map(m => +m.leads), 1);
+    $('#funnel').innerHTML = D.by_market.map(m => {
+      const l = +m.leads, q = +m.qualified, b = +m.bookings, w = l / maxLeads * 100;
+      return `<div class="funnel-row"><div class="mk">${m.market_code}<small>${m.market_name || MARKET_NAMES[m.market_code] || ''}</small></div>
+        <div><div class="bar" style="width:${w}%"><span class="s1" style="width:${(l - q) / l * 100}%"></span><span class="s2" style="width:${(q - b) / l * 100}%"></span><span class="s3" style="width:${b / l * 100}%"></span></div>
+        <div class="num" style="font-size:11px;color:var(--muted);margin-top:3px">${fmtN(l)} → ${fmtN(q)} → <b style="color:var(--ink)">${fmtN(b)}</b> · ${pct(q ? b / q * 100 : 0)} de qualificado→reserva</div></div>
+        <div class="rev num">${fmtUSD(m.revenue_usd)}<small>${pct(m.revenue_usd ? m.margin_usd / m.revenue_usd * 100 : 0)} margem</small></div></div>`; }).join('');
+
+    // aquisição
+    $('#acq-table tbody').innerHTML = D.by_market.map(m => {
+      const cpl = m.leads ? +m.ad_spend_usd / +m.leads : 0, cac = m.cac_usd, tgt = m.cac_target || CAC_TARGET[m.market_code];
+      const st = !cac ? ['neutral', 'sem reservas'] : cac <= tgt * 0.85 ? ['good', 'abaixo da meta'] : cac <= tgt * 1.15 ? ['warn', 'na meta'] : ['bad', 'acima da meta'];
+      return `<tr><td><b>${m.market_name || m.market_code}</b></td><td style="color:var(--muted)">${CHANNELS[m.market_code] || '—'}</td><td class="r num">${fmtUSD(m.ad_spend_usd)}</td><td class="r num">${fmtN(m.leads)}</td><td class="r num">${fmtUSD(cpl)}${CPL_TARGET[m.market_code] ? ` <span style="color:var(--muted)">/ ${CPL_TARGET[m.market_code]}</span>` : ''}</td><td class="r num">${fmtN(m.bookings)}</td><td class="r num"><b>${cac ? fmtUSD(cac) : '—'}</b></td><td class="r num" style="color:var(--muted)">${tgt ? fmtUSD(tgt) : '—'}</td><td><span class="chip ${st[0]}">${st[1]}</span></td></tr>`; }).join('');
+    $('#acq-meta').textContent = `mídia ${fmtUSD(spend)} · teto USD 135/dia · realocação automática a cada 6h`;
+
+    // atendimento
+    $('#care-table tbody').innerHTML = D.by_market.map(m => { const er = m.conversations ? +m.escalations / +m.conversations * 100 : 0; return `<tr><td><b>${m.market_name || m.market_code}</b></td><td class="r num">${fmtN(m.conversations)}</td><td class="r num"><span class="chip ${er < 4 ? 'good' : er < 6 ? 'warn' : 'bad'}">${pct(er)}</span></td><td class="r num">${Math.round(+m.first_response_p50_s || 0)} s</td><td class="r num">${m.csat ? (+m.csat).toFixed(1) : '—'}</td></tr>`; }).join('');
+    $('#care-meta').textContent = `${fmtN(convs)} conversas · ${fmtN(escs)} com humano · resposta mediana ${Math.round(frt)} s`;
+    $('#esc-count').textContent = `${s.escalations.length} abertos`;
+    $('#escalations').innerHTML = s.escalations.length ? s.escalations.map(e => `<div class="esc"><div class="sev ${e.severity}"></div><div class="body"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${e.display_name || 'lead'} · ${MARKET_NAMES[e.market_code] || e.market_code || ''} · ${e.channel || ''}</b><span class="when">${e.trigger_id} · há ${Math.round(e.minutes_open)} min</span></div><p>${e.summary || ''}</p>${e.suggested_action ? `<p><b>Sugestão:</b> ${e.suggested_action}</p>` : ''}<div style="margin-top:8px;display:flex;gap:8px"><button class="btn small" data-open-esc="${e.id}">Abrir no Chatwoot</button><button class="btn small ghost" data-resolve-esc="${e.id}">Marcar resolvido</button></div></div></div>`).join('') : '<div class="empty">Nenhum caso com humano agora. A IA está resolvendo tudo.</div>';
+
+    // campo & renovações
+    const STATUS_PT = { planned: ['neutral', 'planejado'], sent: ['neutral', 'enviado'], confirmed_by_driver: ['good', 'confirmado'], en_route: ['warn', 'a caminho'], onboard: ['good', 'a bordo'], done: ['neutral', 'concluído'], cancelled: ['bad', 'cancelado'], no_show: ['bad', 'no-show'] };
+    const KIND_PT = { transfer_in: 'Transfer chegada', transfer_out: 'Transfer saída', tour: 'Tour', meet_greet: 'Meet & greet', errand: 'Compra/entrega', abaya: 'Abayas' };
+    const fs = s.field.services || [];
+    $('#field-table tbody').innerHTML = fs.length ? fs.map(x => { const st = STATUS_PT[x[6]] || ['neutral', x[6]]; return `<tr><td class="num">${x[0]}</td><td>${KIND_PT[x[1]] || x[1]}${x[7] ? ' <span class="chip warn">VIP</span>' : ''}</td><td>${x[2]}</td><td class="r num">${x[3]}</td><td>${x[4]}</td><td style="color:var(--ink-2)">${x[5]}</td><td><span class="chip ${st[0]}">${st[1]}</span></td></tr>`; }).join('') : '<tr><td colspan="7" class="empty">Nenhum serviço de campo hoje.</td></tr>';
+    const hrs = (s.field.hours || []).map(h => `${h[0].split(' ')[0]} ${fmtN(h[1])}h${h[2] ? ' +' + fmtN(h[2]) + 'h extra' : ''}`).join(' · ');
+    $('#field-meta').textContent = `${fs.length} serviços hoje · ${fs.filter(x => x[7]).length} VIP · horas do mês: ${hrs || '—'}`;
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    $('#renewals-table tbody').innerHTML = (s.renewals || []).map(r => { const due = new Date(r[1]); const days = Math.round((due - today0) / 86400000); const cls = days < 0 ? 'bad' : days <= 30 ? 'bad' : days <= 60 ? 'warn' : 'neutral'; return `<tr><td>${r[0]}${r[3] === 'quoted' ? ' <span class="chip good">cotado</span>' : ''}</td><td class="r num">${due.toLocaleDateString('pt-BR')}</td><td class="r"><span class="chip ${cls}">${days < 0 ? 'vencido' : days + 'd'}</span></td><td style="color:var(--muted)">${r[2]}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">Nada vence em 120 dias.</td></tr>';
+    $('#vehicles-table tbody').innerHTML = (s.field.vehicles || []).map(v => `<tr><td><b>${v[0]}</b></td><td class="r num">${fmtN(v[1])}</td><td class="r num"><span class="chip ${v[2] <= 500 ? 'bad' : v[2] <= 1500 ? 'warn' : 'good'}">${fmtN(v[2])} km</span></td><td class="r num">${v[3]}</td></tr>`).join('');
+
+    // conteúdo
+    $('#content-table tbody').innerHTML = (s.content.length ? s.content : D.by_market.map(m => [m.market_code, '—', '—', '—', '—', '—'])).map(c => `<tr><td><b>${MARKET_NAMES[c[0]] || c[0]}</b></td><td class="r num">${c[1]}</td><td class="r num">${c[2]}</td><td class="r num">${typeof c[3] === 'number' ? fmtN(c[3]) : c[3]}</td><td class="r num">${c[4]}</td><td>${c[5]}</td></tr>`).join('');
+
+    // máquina
+    const totalCost = s.agents.reduce((a, x) => a + (+x[2] || 0), 0), totalCap = 60;
+    $('#agents-table tbody').innerHTML = s.agents.map(a => { const [name, runs, cost, cap, errors, last] = a; const ratio = cap ? cost / cap : 0; const cls = ratio > 0.9 ? 'bad' : ratio > 0.7 ? 'warn' : ''; return `<tr><td><b>${name}</b></td><td class="r num">${fmtN(runs)}</td><td class="r num">USD ${(+cost).toFixed(2)}</td><td><div class="cap ${cls}" title="${cap ? 'teto USD ' + cap : ''}"><span style="width:${Math.min(100, ratio * 100)}%"></span></div></td><td class="r num">${errors ? `<span class="chip bad">${errors}</span>` : '0'}</td><td style="color:var(--muted)">${last}</td></tr>`; }).join('');
+    $('#machine-meta').innerHTML = `tokens hoje <b class="num">USD ${totalCost.toFixed(2)}</b> de ${totalCap} · Postgres · Redis · Chatwoot · Langfuse <span class="chip good">ok</span>`;
+    $('#feed').innerHTML = s.feed.map(f => `<div class="feed-item"><span class="t num">${f[0]}</span><span><span class="who">${f[1]}</span> <span style="color:var(--muted)">${f[2]}</span> — ${f[3]}</span><span class="cost num">${f[4] ? '$' + (+f[4]).toFixed(2) : ''}</span></div>`).join('');
+
+    // decisões
+    const pending = s.decisions.filter(d => !d.status || d.status === 'pending');
+    $('#decisions-meta').textContent = pending.length ? `${pending.length} pendentes · o resto a equipe decide sozinha` : 'nada pendente';
+    $('#decisions').innerHTML = s.decisions.length ? s.decisions.map(d => `<div class="decision card lift ${d.status && d.status !== 'pending' ? 'done' : ''}">
+      <div class="kind"><span class="eyebrow">${{ budget_increase: 'Orçamento de mídia', discount: 'Desconto', new_supplier: 'Novo fornecedor', refund: 'Reembolso', booking_high_value: 'Reserva alta', new_market: 'Mercado', prompt_change: 'Mudança de prompt', content_campaign: 'Campanha' }[d.kind] || d.kind}${d.market_code ? ' · ' + (MARKET_NAMES[d.market_code] || d.market_code) : ''}</span><span class="pill">${d.requested_by.replace('ai:', '')} · ${typeof d.created_at === 'string' && d.created_at.startsWith('-') ? 'há ' + d.created_at.slice(1) : new Date(d.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></div>
+      <p>${d.context}</p>
+      <div class="rec"><b>Recomendação:</b> ${d.recommendation}${d.amount_usd ? ` <span class="num" style="color:var(--muted)">· ${fmtUSD(d.amount_usd)}</span>` : ''}</div>
+      <div class="actions">${d.status && d.status !== 'pending' ? `<span class="chip ${d.status === 'approved' ? 'good' : 'neutral'}">${d.status === 'approved' ? 'aprovada' : 'recusada'}</span>` : `<button class="btn primary" data-decide="${d.id}" data-approve="1">Aprovar</button><button class="btn" data-decide="${d.id}" data-approve="0">Recusar</button><label style="margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><input type="checkbox" id="rule-${d.id}"> virar regra</label>`}</div></div>`).join('') : '<div class="card empty">Nenhuma decisão pendente. O CEO-agente só traz o que as regras não cobrem.</div>';
+    $('#license').textContent = '781806 · IATA 96029802';
+  }
+
+  // ───────── ações ─────────
+  function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+  document.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-decide]');
+    if (b) {
+      const id = b.dataset.decide, approve = b.dataset.approve === '1', rule = $(`#rule-${id}`)?.checked;
+      if (state.mode === 'live') { await fetch(`/api/decisions/${id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approve, becomes_rule: !!rule, note: rule ? 'Regra criada pelo CEO no dashboard' : null }) }); await load(state.days); }
+      else { const d = state.decisions.find(x => x.id === id); d.status = approve ? 'approved' : 'rejected'; render(state); }
+      toast((approve ? 'Aprovada' : 'Recusada') + (rule ? ' · registrada como regra' : '') + ' — o CEO-agente aplica agora');
+    }
+    const r = ev.target.closest('[data-resolve-esc]');
+    if (r) { if (state.mode === 'live') { await fetch(`/api/escalations/${r.dataset.resolveEsc}/resolve`, { method: 'POST' }); await load(state.days); } else { state.escalations = state.escalations.filter(e => e.id !== r.dataset.resolveEsc); render(state); } toast('Caso resolvido — a conversa volta para a IA'); }
+    const o = ev.target.closest('[data-open-esc]');
+    if (o) { if (state.mode === 'live') location.href = '/inbox/'; else toast('Na máquina, isto abre a conversa no Chatwoot (/inbox)'); }
+  });
+  $('#btn-briefing').addEventListener('click', async () => { if (state.mode === 'live') { await fetch('/api/tasks/ceo/ceo_briefing', { method: 'POST' }); toast('Briefing pedido — chega no WhatsApp em ~1 min'); } else toast('Na máquina, isto dispara ceo.ceo_briefing'); });
+  $('#chat-form').addEventListener('submit', e => { e.preventDefault(); const i = $('#chat-input'); sendChat(i.value); i.value = ''; });
+  $('#chat-chips').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) sendChat(b.dataset.q); });
+  $('#range').addEventListener('change', e => load(+e.target.value));
+  load(30);
+})();
+</script>

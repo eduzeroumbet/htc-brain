@@ -1,0 +1,70 @@
+code: SA
+name: Arábia Saudita e GCC
+wave: 1
+active: true
+priority_score: 8.6
+language: ar-SA
+secondary_languages: [en]
+currency: SAR
+display_currency: [SAR, AED]
+timezone: Asia/Riyadh
+covers_also: [KW, QA, BH, OM]
+market_size_note: "~1,45 mi visitantes sauditas/ano (est. 2023); GCC = 2,99 mi em 2025 (15%). Menos sensível ao conflito; viaja de carro se preciso."
+
+persona:
+  name: "Noura"
+  role: "مستشارة سفر في دبي"
+  bio: "Saudita de Riade morando em Dubai há 6 anos; especialista em viagens de família grande, hospedagem de luxo com privacidade, experiências femininas e passeios de fim de semana e Eid."
+  tone: "árabe do Golfo (não árabe padrão), respeitoso, caloroso, usa formas de tratamento adequadas; nunca informal demais; entende que a família viaja com 6-12 pessoas e que o marido ou a mãe decidem."
+  greeting: "أهلاً وسهلاً! أنا هدى، مستشارة {agency_name} في دبي (رخصة دائرة الاقتصاد والسياحة {det_license_number}، IATA 96029802). أرسلوا لي التواريخ وعدد الأفراد وأرتّب لكم برنامجاً كاملاً خلال دقائق."
+
+channels:
+  primary: [whatsapp]
+  secondary: [instagram, webchat]
+  ads: [snapchat, tiktok, meta, google_search]
+  posting_hours_local: ["10:00", "16:00", "22:00"]
+
+segments:
+  - { name: "Família grande (3 gerações)", share_pct: 40, avg_ticket_usd: 3200, nights: 4 }
+  - { name: "Casal / lua de mel de luxo", share_pct: 20, avg_ticket_usd: 2800, nights: 4 }
+  - { name: "Grupo de amigas", share_pct: 15, avg_ticket_usd: 1800, nights: 3 }
+  - { name: "Fim de semana / Eid curto", share_pct: 25, avg_ticket_usd: 1200, nights: 2 }
+
+peaks:
+  - { period: "Eid al-Fitr e Eid al-Adha", reason: "feriados longos; reservar 6-8 semanas antes" }
+  - { period: "Jun–Ago", reason: "férias escolares; foco em resorts com clube infantil e malls" }
+  - { period: "Fundação (22 fev) e Dia Nacional (23 set)", reason: "fins de semana prolongados" }
+
+connectivity:
+  carriers: [Emirates, flydubai, Saudia, flynas, flyadeal, Etihad]
+  weekly_flights_note: "1h50 de voo; rodoviário via Al Batha/Ghuwaifat (~9h de Riade)"
+  visa: "Cidadãos do GCC não precisam de visto. Residentes do GCC: visto eletrônico."
+
+objections:
+  - { objection: "Privacidade e ambiente familiar no hotel", answer_key: family_privacy_hotels }
+  - { objection: "Já conhecemos Dubai, o que há de novo?", answer_key: whats_new_2026 }
+  - { objection: "Preço vs reservar direto", answer_key: value_of_agency_gcc }
+  - { objection: "Segurança em 2026", answer_key: safety_2026 }
+
+content_pillars:
+  - "Novidades de Dubai para quem já veio 10 vezes (Ciel, Marsa Al Arab, Dubai Islands, novos restaurantes)"
+  - "Resorts para família grande com villas e piscinas privativas"
+  - "Roteiros de Eid de 3 e 4 noites prontos"
+  - "Experiências femininas: spas, praias ladies-only, compras privadas"
+  - "Gastronomia halal de alto nível e cafés de tendência"
+  - "Ofertas com taxas zeradas (7% municipal e Tourism Dirham) — fonte oficial"
+
+compliance_notes:
+  - "GCAM/normas sauditas de publicidade: sem imagens ou linguagem inadequadas; respeitar valores locais."
+  - "PDPL saudita (2023): consentimento e transferência de dados."
+  - "Preço em SAR com VAT explícito."
+
+payments:
+  gateway: tap
+  methods: [mada, card, apple_pay]
+  note: "Tap Payments cobre mada; Apple Pay muito usado."
+
+kpi_targets:
+  cpl_usd: 9
+  cac_usd: 140
+  lead_to_booking_pct: 6

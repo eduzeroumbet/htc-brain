@@ -1,0 +1,70 @@
+code: RU
+name: Rússia e Cazaquistão (CIS)
+wave: 2
+active: false            # ligar nas semanas 9-10
+priority_score: 7.9
+language: ru
+secondary_languages: [kk]
+currency: RUB
+display_currency: [USD, AED]
+timezone: Europe/Moscow
+covers_also: [KZ, UZ, AZ, BY]
+market_size_note: "CIS e Leste Europeu = 2,89 mi em 2025 (15%, +10%). Rússia ~0,9 mi (est. 2023). Alto ticket e fidelidade; pagamento é o gargalo."
+
+persona:
+  name: "Худа"
+  role: "консультант по Дубаю"
+  bio: "Из Санкт-Петербурга, живёт в Дубае 9 лет; знает, где русскоязычные врачи, какие отели на Palm подходят семьям с детьми, где лучшие пляжи зимой и как оформить всё без карты Visa/Mastercard."
+  tone: "вежливо, по делу, без лишних эмодзи; цены в USD и AED; честно про ограничения по оплате."
+  greeting: "Здравствуйте! Я Худа, консультант {agency_name} в Дубае (лицензия DET {det_license_number}, IATA 96029802). Напишите даты и состав поездки — соберу программу за несколько минут."
+
+channels:
+  primary: [telegram, whatsapp]
+  secondary: [webchat, email]
+  ads: [yandex_direct, vk, telegram_ads]
+  posting_hours_local: ["09:00", "14:00", "21:00"]
+
+segments:
+  - { name: "Семья с детьми (зима)", share_pct: 35, avg_ticket_usd: 2800, nights: 7 }
+  - { name: "Пара / премиум", share_pct: 25, avg_ticket_usd: 3200, nights: 5 }
+  - { name: "Новый год", share_pct: 20, avg_ticket_usd: 3800, nights: 7 }
+  - { name: "Казахстан — уикенд/шопинг", share_pct: 20, avg_ticket_usd: 1500, nights: 4 }
+
+peaks:
+  - { period: "1–10 января", reason: "новогодние каникулы; бронировать с октября" }
+  - { period: "Ноя–Мар", reason: "зимний сезон" }
+  - { period: "Майские праздники", reason: "короткие поездки" }
+
+connectivity:
+  carriers: [Emirates, flydubai, Aeroflot, Air Arabia, "Air Astana (retoma 30/09/2026)", SCAT]
+  weekly_flights_note: "Emirates e flydubai de Moscou, SPb, Kazan e outras; Air Astana volta em 30/set"
+  visa: "Russos: visa on arrival 90 dias. Cazaques: visa on arrival 30 dias."
+
+objections:
+  - { objection: "Как оплатить без Visa/Mastercard?", answer_key: payment_ru }
+  - { objection: "Безопасно ли сейчас?", answer_key: safety_2026 }
+  - { objection: "Есть ли русскоязычная поддержка на месте?", answer_key: support_ru }
+  - { objection: "Зачем агентство, если можно самому?", answer_key: value_of_agency_ru }
+
+content_pillars:
+  - "Дубай зимой 2026/27: что изменилось, официальные цифры"
+  - "Новый год в Дубае: программы на 7 ночей с ценами"
+  - "Семейные отели на Palm и JBR: честный разбор"
+  - "Как оплатить и получить страховку из России и Казахстана"
+  - "Шопинг и Dubai Shopping Festival"
+  - "Отзывы клиентов"
+
+compliance_notes:
+  - "Screening de sanções em clientes e fornecedores antes do pagamento."
+  - "Pagamento apenas por gateway com KYC; sem transferência informal."
+  - "Lei russa 152-FZ sobre dados: dados armazenados fora da Rússia — informar no consentimento."
+
+payments:
+  gateway: stripe
+  methods: [card_foreign_issued, usdt_via_licensed_partner_optional, bank_transfer_kz]
+  note: "Muitos clientes usam cartões emitidos no Cazaquistão, Armênia ou EAU. Cripto só via parceiro licenciado (VARA) e após aprovação do CEO."
+
+kpi_targets:
+  cpl_usd: 8
+  cac_usd: 130
+  lead_to_booking_pct: 5

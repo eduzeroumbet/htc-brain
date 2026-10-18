@@ -1,0 +1,130 @@
+# Os 6 gatilhos que tiram a conversa da IA e abrem um caso humano no Chatwoot, mais 2 gatilhos de
+# negócio da HCTE (MICE/eventos/parcerias → CEO; chegada de VIP → presença humana no meet & greet).
+# O Roteador de Escalonamento (Haiku) avalia TODA mensagem contra estas regras antes do consultor responder.
+# Fora daqui, a IA resolve sozinha. Meta: < 4% das conversas escaladas.
+
+defaults:
+  inbox: chatwoot_human
+  notify_ceo_channel: whatsapp
+  summary_language: pt          # o resumo para o humano é sempre em português
+  include: [lead_profile, last_10_messages, open_quotes, bookings, suggested_action]
+
+triggers:
+  - id: travel_emergency
+    label: "Emergência em viagem"
+    severity: critical
+    sla_minutes: 0
+    notify_ceo: true
+    call_ceo: true
+    conditions:
+      any:
+        - keywords_any: [hospital, ambulância, acidente, polícia, roubo, perdi o passaporte, passport lost, emergency, police, ambulance, accident, stolen, مستشفى, شرطة, حادث, скорая, полиция, потерял паспорт, Notfall, Krankenhaus, Polizei]
+        - client_in_trip_and_supplier_silent_minutes: 30
+    ai_reply_before_handoff: >
+      Mensagem curta no idioma do cliente: já acionei uma pessoa da equipe agora; enquanto isso,
+      número de emergência local 999 (polícia) e 998 (ambulância); estou aqui.
+
+  - id: payment_threshold
+    label: "Pagamento ou reembolso acima do limite"
+    severity: high
+    sla_minutes: 120
+    notify_ceo: true
+    conditions:
+      any:
+        - booking_value_usd_gte: 5000
+        - refund_requested_usd_gte: 500
+        - chargeback_or_dispute: true
+    ai_reply_before_handoff: >
+      Confirma que recebeu, explica que valores acima de um limite passam por aprovação da direção
+      e dá prazo de 2 horas.
+
+  - id: severe_complaint
+    label: "Reclamação grave"
+    severity: high
+    sla_minutes: 60
+    notify_ceo: true
+    conditions:
+      any:
+        - negative_sentiment_consecutive_messages: 2
+        - keywords_any: [processar, advogado, denúncia, Procon, consumidor, reclame aqui, lawyer, sue, complaint to DET, refund now, scam, fraud, نصب, احتيال, шахраи, обман, жалоба, Betrug, Anwalt]
+        - threat_public_review: true
+    ai_reply_before_handoff: >
+      Pede desculpas sem admitir culpa específica, resume o que entendeu do problema em uma frase e
+      informa que a responsável assume em até 1 hora.
+
+  - id: explicit_request
+    label: "Pedido explícito de humano"
+    severity: medium
+    sla_minutes: 240
+    business_hours_only: true
+    notify_ceo: false
+    conditions:
+      any:
+        - keywords_any: [falar com uma pessoa, atendente, humano, human, real person, agent please, speak to someone, أريد التحدث مع شخص, موظف, оператор, человек, живой, Mitarbeiter, Mensch]
+        - same_question_repeated_times: 3
+    ai_reply_before_handoff: >
+      Claro. Passa o contexto para a equipe e diz o horário previsto de resposta (horário de Dubai).
+
+  - id: compliance_risk
+    label: "Risco de compliance"
+    severity: high
+    sla_minutes: 240
+    notify_ceo: true
+    conditions:
+      any:
+        - keywords_any: [visto de trabalho, work visa, garantia de visto, visa guaranteed, menor sozinho, unaccompanied minor, bebida no deserto para menor, drogas, weapons, arma]
+        - requests_illegal_or_prohibited_activity: true
+        - sensitive_data_shared_unprompted: [passport_number, card_number, medical_condition]
+    ai_reply_before_handoff: >
+      Explica com educação o que a agência pode e não pode fazer e encaminha para revisão.
+
+  - id: low_confidence
+    label: "Incerteza do modelo"
+    severity: medium
+    sla_minutes: 240
+    notify_ceo: false
+    conditions:
+      any:
+        - price_or_availability_not_in_catalog: true
+        - supplier_no_response_hours: 4
+        - model_self_reported_confidence_below: 0.6
+        - policy_question_not_covered: true
+    ai_reply_before_handoff: >
+      Diz que vai confirmar com a equipe para não passar informação errada e dá prazo.
+
+  # ───────── gatilhos de negócio (HCTE): não são emergência, mas só a CEO decide ─────────
+  - id: business_decision
+    label: "Decisão de negócio (MICE, contrato anual, imprensa, influenciador)"
+    severity: medium
+    sla_minutes: 480
+    business_hours_only: true
+    notify_ceo: true
+    conditions:
+      any:
+        - mice_or_event_pax_gte: 20                      # eventos vão pela HCB1 Events
+        - keywords_any: [evento corporativo, corporate event, incentive trip, MICE, congresso, conference, gala, casamento para 100, wedding for, permuta, parceria, collab, imprensa, press, entrevista, patrocínio, sponsorship]
+        - supplier_requests_annual_contract: true
+    ai_reply_before_handoff: >
+      Agradece, coleta datas, número de pessoas, cidade e orçamento aproximado, diz que a diretora
+      assume pessoalmente eventos e parcerias e dá prazo de 1 dia útil. A IA continua cotando
+      transporte e hospedagem do grupo enquanto isso.
+
+  - id: vip_arrival
+    label: "Chegada de VIP acima do limiar ou pedido de discrição"
+    severity: medium
+    sla_minutes: 1440
+    notify_ceo: true
+    conditions:
+      any:
+        - lead_followers_gte: 1000000
+        - keywords_any: [discrição, discreto, sigilo, sem fotos, no photos, privacy, low profile, segurança pessoal, bodyguard]
+    ai_reply_before_handoff: >
+      Confirma o protocolo VIP (sem exposição, meet & greet presencial, canal direto) e segue a
+      conversa normalmente; o caso serve para escalar guia/plantão presencial, não para parar a venda.
+
+# Depois do handoff
+after_handoff:
+  ai_stays_in_conversation: true          # a IA continua respondendo perguntas simples enquanto o humano não assume
+  ai_muted_topics: [preço, reembolso, reclamação]
+  auto_return_to_ai_after_resolution: true
+  log_reason_and_outcome: true

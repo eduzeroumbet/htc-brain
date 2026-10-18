@@ -1,0 +1,71 @@
+code: GB
+name: Reino Unido e Irlanda
+wave: 1
+active: true
+priority_score: 8.4
+language: en-GB
+secondary_languages: []
+currency: GBP
+display_currency: [GBP]
+timezone: Europe/London
+market_size_note: "~1,25 mi visitantes/ano (est. 2023); mercado mais maduro para Dubai. BA e Virgin fora até out/2026–2027; Emirates voa cheio de LHR, LGW, STN, MAN, BHX, GLA, EDI, NCL."
+
+persona:
+  name: "Huda"
+  role: "Dubai travel consultant"
+  bio: "Brit from Manchester, in Dubai since 2016. Has done the winter-sun trip with every kind of family, knows which JBR hotels have the good kids' clubs, where the quiet beaches are, and how to do Old Dubai in a morning."
+  tone: "friendly, dry humour allowed, straight-talking about price; British spelling; GBP only; never oversells."
+  greeting: "Hi, I'm Huda, {agency_name}'s Dubai consultant. Give me your dates and who's coming and I'll build you a proper plan in a few minutes."
+
+channels:
+  primary: [webchat, email]
+  secondary: [whatsapp, instagram]
+  ads: [google_search, meta, youtube]
+  posting_hours_local: ["07:30", "12:30", "19:30"]
+
+segments:
+  - { name: "Winter sun family", share_pct: 35, avg_ticket_usd: 2600, nights: 7 }
+  - { name: "Couples luxury short break", share_pct: 25, avg_ticket_usd: 2400, nights: 4 }
+  - { name: "Christmas / New Year", share_pct: 15, avg_ticket_usd: 3500, nights: 6 }
+  - { name: "Stopover to Asia/Australia", share_pct: 15, avg_ticket_usd: 400, nights: 2 }
+  - { name: "Golf / sport / events", share_pct: 10, avg_ticket_usd: 2200, nights: 4 }
+
+peaks:
+  - { period: "Nov–Mar", reason: "winter sun" }
+  - { period: "October half-term (last week)", reason: "famílias" }
+  - { period: "February half-term", reason: "famílias" }
+  - { period: "Christmas / New Year", reason: "alto ticket" }
+
+connectivity:
+  carriers: [Emirates]
+  suspended_until: { British Airways: "2026-10-25", Virgin Atlantic: "2027" }
+  weekly_flights_note: "Emirates mantém 6+ diários só de LHR; ofertas 'volta dos voos' quando BA retomar em 25/out."
+  visa: "Visa on arrival, 30 dias, gratuito."
+
+objections:
+  - { objection: "Is it safe / FCDO advice", answer_key: safety_2026_fcdo }
+  - { objection: "ATOL/ABTA protection", answer_key: protection_uk }
+  - { objection: "Why not book with TUI/BA Holidays", answer_key: value_of_agency_uk }
+  - { objection: "Alcohol, dress code, PDA rules", answer_key: rules_for_visitors }
+
+content_pillars:
+  - "Winter sun 2026/27: what's actually different, in numbers (FCDO, airport status, occupancy)"
+  - "Family Dubai for £X pp: real itineraries with costs"
+  - "Half-term hacks: kids' clubs, water parks, quiet beaches"
+  - "Stopovers done right: 36 hours in Dubai"
+  - "Grown-up Dubai: brunches, Michelin, desert dinners"
+  - "Proof: client reviews, before/after quotes"
+
+compliance_notes:
+  - "ASA/CAP Code: preços com todas as taxas; sem 'best price' sem fonte."
+  - "UK GDPR: base legal, privacy notice, DSAR em 30 dias."
+  - "Package Travel Regulations 2018: como a agência é sediada em Dubai e não vende aéreo, deixar claro que não é ATOL e qual proteção existe (cartão, seguro)."
+
+payments:
+  gateway: stripe
+  methods: [card, apple_pay, google_pay]
+
+kpi_targets:
+  cpl_usd: 11
+  cac_usd: 150
+  lead_to_booking_pct: 5
