@@ -7,7 +7,7 @@ from typing import Any
 
 import structlog
 
-from brain.core import bus, db, jev
+from brain.core import bus, consent, db, jev
 from brain.core.agent_base import BaseAgent
 from brain.core.prompts import fill_agency_placeholders
 from brain.tools import catalog, crm, handoff, knowledge, names, payments, quotes
@@ -167,6 +167,9 @@ class ConsultantAgent(BaseAgent):
         lead = await db.fetchrow("SELECT * FROM leads WHERE id = $1", lead_id)
         if not lead or lead["stage"] in ("won", "lost") or not lead.get("consent_marketing"):
             return
+        if not await consent.pode_enviar_marketing(lead_id, lead["channel"]):  # antes de gastar com o modelo; o dispatch confere de novo
+            log.info("marketing_blocked", lead_id=lead_id, channel=lead["channel"], author="ai:consultant", stage="followup")
+            return
         if not await bus.rate_limit(f"followup:{lead_id}", limit=1, window_s=20 * 3600):
             return
         conv = await db.open_conversation(lead_id, lead["channel"])
@@ -177,4 +180,5 @@ class ConsultantAgent(BaseAgent):
         if result.status == "ok" and result.text.strip():
             await db.log_message(str(conv["id"]), "out", "ai:consultant", result.text.strip(), cost_usd=result.cost_usd)
             await bus.publish(bus.OUTBOUND, {"channel": lead["channel"], "channel_user_id": lead["channel_user_id"],
-                                             "text": result.text.strip(), "lead_id": lead_id, "template_required": True})
+                                             "text": result.text.strip(), "lead_id": lead_id, "template_required": True,
+                                             "purpose": "marketing"})
