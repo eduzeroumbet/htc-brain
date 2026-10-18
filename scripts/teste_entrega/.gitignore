@@ -1,0 +1,5 @@
+# números reais de teste e resultados ficam fora do git
+numeros.json
+resultados/
+capturas/*
+!capturas/LEIA-ME.md

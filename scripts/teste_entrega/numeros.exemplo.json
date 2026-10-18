@@ -1,0 +1,9 @@
+{
+  "_leia": "Copie para numeros.json (fora do git) e troque os X pelos 4 números de teste, em E.164. janela_24h: true só depois que o número mandou uma mensagem para +971 58 515 3946 nas últimas 24h.",
+  "numeros": [
+    {"numero": "+91 XXXXX XXXXX", "mercado": "IN", "janela_24h": false},
+    {"numero": "+44 XXXX XXXXXX", "mercado": "GB", "janela_24h": false},
+    {"numero": "+966 XX XXX XXXX", "mercado": "SA", "janela_24h": false},
+    {"numero": "+49 XXX XXXXXXXX", "mercado": "DE", "janela_24h": false}
+  ]
+}
