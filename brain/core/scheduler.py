@@ -13,6 +13,7 @@ Prospecção
   09:30  prospecção diária por mercado · */4h follow-ups vencidos
 Atendimento
   evento inbound (Jev → consultor) · */15min Concierge em viagem · follow-ups D+1/3/7 pela fila
+  */60s transbordo para humano (alertas pendentes, atendido, SLA vencido → escalonamento)
 Operacional
   */30min confirma reservas e emite · */15min resolve problemas · 09:00 catálogo/preços · 18:00 campo de amanhã (motoristas, guias, resolução)
   Seg 08:30 frota · último dia 17:00 folha motoristas · Ter 09:30 renovações · 08:15 presentes
@@ -37,7 +38,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from brain.core import bus, db
+from brain.core import bus, db, handoff
 from brain.settings import active_markets, agency_config
 
 log = structlog.get_logger(__name__)
@@ -102,6 +103,7 @@ def build() -> AsyncIOScheduler:
     s.add_job(db.rollup_kpis, IntervalTrigger(minutes=30), id="kpis_rollup")
     s.add_job(enqueue, IntervalTrigger(minutes=15), args=["concierge", "in_trip_sweep"], id="concierge")
     s.add_job(enqueue, IntervalTrigger(minutes=5), args=["consultant", "proposal_desk"], id="proposal_desk")   # promessa de 30 min
+    s.add_job(handoff.varrer, IntervalTrigger(seconds=60), id="handoff_sweep")   # transbordo: alerta ≤ 1 min, atendido, SLA vencido
     s.add_job(enqueue, IntervalTrigger(seconds=60), args=["_channels", "poll_email"], id="poll_email")
 
     # HCTE — campo e administração

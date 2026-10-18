@@ -1,6 +1,7 @@
 """Orquestrador: consome os streams e chama o agente certo.
 
 inbound  → triagem (Jev → roteador) → gatilho humano? handoff : consultor do mercado (24/7, sem fila humana)
+           transbordo (humano, proposta, pagamento, reclamação, DSAR) → handoff_events + alerta à equipe (brain/core/handoff.py)
 tasks    → agente.método (cron/eventos)
 outbound → adaptador do canal
 alerts   → WhatsApp do CEO
@@ -13,7 +14,7 @@ from typing import Any
 import structlog
 
 from brain.channels import dispatch, email as email_ch, whatsapp
-from brain.core import bus, consent, db, guardrails, registry, retry
+from brain.core import bus, consent, db, guardrails, handoff, registry, retry
 from brain.settings import escalation_config, get_settings
 
 log = structlog.get_logger(__name__)
@@ -57,7 +58,43 @@ async def _handle_consent(event: dict[str, Any], lead: dict[str, Any] | None) ->
     await bus.publish(bus.OUTBOUND, {"channel": event["channel"], "channel_user_id": event["channel_user_id"], "text": reply,
                                      "lead_id": lead_id, "conversation_id": str(conv["id"]), "author": "system",
                                      "purpose": "transactional", "reply_to": event.get("message_id")})
+    if lang_dsar:  # a exclusão é executada por humano: transbordo DSAR (a confirmação ao cliente já saiu acima)
+        await _abrir_transbordos(str(conv["id"]), lead_id, [{"trigger": "dsar", "subtype": "erasure", "detected_by": "keyword",
+                                                             "language": lang_dsar, "details": {"intent": "dsar_erasure"}}])
     return True
+
+
+async def _abrir_transbordos(conversation_id: str, lead_id: str, deteccoes: list[dict[str, Any]]) -> list[str]:
+    """Registra os transbordos (deduplicados por conversa e gatilho) e alerta a equipe em segundo plano.
+    Devolve os gatilhos novos que pedem aviso ao cliente. Falha aqui só vira log: o atendimento segue."""
+    novos = []
+    for d in deteccoes:
+        try:
+            ev = await handoff.registrar(conversation_id, lead_id, d)
+        except Exception as exc:  # noqa: BLE001
+            log.error("handoff_register_failed", trigger=d["trigger"], error=f"{type(exc).__name__}: {exc}"[:300])
+            continue
+        if ev["novo"]:
+            handoff.alertar_em_segundo_plano(ev["id"])
+            if handoff.avisa_cliente(d["trigger"]):
+                novos.append(d["trigger"])
+    return novos
+
+
+async def _transbordo(event: dict[str, Any], lead: dict[str, Any] | None, triage: dict[str, Any]) -> list[str]:
+    """Pedido de humano, proposta, pagamento, reclamação ou DSAR na mensagem → evento em handoff_events + alerta à equipe."""
+    deteccoes = handoff.detectar(event.get("text"), triage)
+    if not deteccoes:
+        return []
+    try:
+        if lead is None:  # primeira mensagem: o evento precisa de lead e conversa (o consultor reaproveita os dois)
+            lead = await db.upsert_lead(event["channel"], event["channel_user_id"], display_name=event.get("display_name"),
+                                        phone=event.get("phone"), email=event.get("email"))
+        conv = await db.open_conversation(str(lead["id"]), event["channel"])
+    except Exception as exc:  # noqa: BLE001
+        log.error("handoff_conversation_failed", error=f"{type(exc).__name__}: {exc}"[:300])
+        return []
+    return await _abrir_transbordos(str(conv["id"]), str(lead["id"]), deteccoes)
 
 
 async def handle_inbound(event: dict[str, Any]) -> None:
@@ -90,6 +127,9 @@ async def handle_inbound(event: dict[str, Any]) -> None:
         event = {**event, "system_notes": [*event.get("system_notes", []), f"Gatilho de escalonamento '{first}' detectado. "
                  f"Responda com a mensagem-ponte definida ({cfg[first]['ai_reply_before_handoff'].strip()}) e chame "
                  f"escalate_to_human(trigger_id='{first}') com resumo e ação sugerida."]}
+    avisar = await _transbordo(event, lead, triage)
+    if avisar and not triggers:  # com gatilho de escalonamento a mensagem-ponte acima já cobre o aviso
+        event = {**event, "system_notes": [*event.get("system_notes", []), handoff.nota_cliente(avisar[0], triage.get("language"))]}
     await consultant.handle_inbound(event, triage)  # type: ignore[attr-defined]
 
 

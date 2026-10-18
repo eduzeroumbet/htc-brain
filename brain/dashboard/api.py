@@ -1,6 +1,7 @@
 """API lida pelo dashboard do CEO. Todas as rotas exigem o login básico definido em main.py."""
 from __future__ import annotations
 
+import uuid
 from datetime import date, timedelta
 from typing import Any
 
@@ -8,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from brain.channels import delivery_failures as df
-from brain.core import bus, consent, db, registry
+from brain.core import bus, consent, db, handoff, registry
 from brain.settings import agency_config, budgets_config, markets_config
 
 router = APIRouter()
@@ -85,7 +86,28 @@ async def escalations() -> list[dict[str, Any]]:
 async def resolve_escalation(escalation_id: str, outcome: str = "") -> dict[str, Any]:
     await db.execute("UPDATE escalations SET status = 'resolved', resolved_by = 'ceo', resolved_at = now(), outcome = $2 WHERE id = $1", escalation_id, outcome)
     await db.execute("""UPDATE conversations SET status = 'ai' WHERE id = (SELECT conversation_id FROM escalations WHERE id = $1)""", escalation_id)
+    esc = await db.fetchrow("SELECT conversation_id FROM escalations WHERE id = $1", escalation_id)
+    if esc and esc["conversation_id"]:  # caso resolvido por humano: transbordos da conversa saem da fila
+        await handoff.fechar(conversation_id=str(esc["conversation_id"]), por="ceo")
     return {"id": escalation_id, "status": "resolved"}
+
+
+@router.get("/dashboard/layer0")
+async def layer0() -> dict[str, Any]:
+    """Camada 0 — transbordo para humano agora: fila aberta, maior espera, tempo médio e % dentro do SLA (24 h e 7 dias)."""
+    return await handoff.metricas_camada0()
+
+
+@router.post("/handoffs/{event_id}/attend")
+async def attend_handoff(event_id: str) -> dict[str, Any]:
+    """Humano assumiu pelo painel: registra atendido_em e tira o evento da fila."""
+    try:
+        uuid.UUID(event_id)
+    except ValueError:
+        raise HTTPException(404) from None
+    if not await handoff.marcar_atendido(event_id=event_id, por="painel"):
+        raise HTTPException(404)
+    return {"id": event_id, "status": "attended"}
 
 
 @router.get("/agents")
