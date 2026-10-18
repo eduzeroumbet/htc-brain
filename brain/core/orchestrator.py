@@ -158,25 +158,54 @@ def _policy(stream: str) -> retry.RetryPolicy:
                              max_delay_s=s.queue_retry_max_delay_s, jitter_ratio=s.queue_retry_jitter_ratio)
 
 
-async def _loop(stream: str, handler, consumer: str) -> None:
-    policy = _policy(stream)
-    async for msg_id, event in bus.consume(stream, GROUP, consumer):
+SEND_STREAMS = (bus.OUTBOUND, bus.ALERTS)
+
+
+async def process_message(stream: str, handler, msg_id: str, event: dict[str, Any], policy: retry.RetryPolicy, *,
+                          sink: Any = bus, consumer: str = "", rng=None, clock=None) -> str:
+    """Um evento do stream. Devolve o desfecho: sent | retry | dlq | duplicate | pending.
+
+    Ack só depois de sucesso, ou de a falha estar gravada de forma durável (retry agendado ou DLQ); nunca em finally.
+    Envio (outbound/alerts): a chave delivery_id segue o evento nos retries; envio já feito não sai de novo.
+    """
+    key, outcome = None, ""
+    if stream in SEND_STREAMS:
+        event = retry.with_delivery_id(event, msg_id)
+        key = retry.delivery_id(event)
+        if await sink.already_delivered(key):   # mesma entrega de novo (worker caiu entre o envio e o ack): só ack
+            log.info("delivery_duplicate_skipped", stream=stream, msg_id=msg_id)
+            outcome = "duplicate"
+    if not outcome:
         try:
             await handler(event)
+            outcome = "sent"
         except asyncio.CancelledError:
             raise
         except BaseException as exc:  # noqa: BLE001 — nada derruba o worker; a falha vira retry agendado ou DLQ
             try:
-                d = await retry.route_failure(bus, stream, msg_id, event, exc, policy)
+                d = await retry.route_failure(sink, stream, msg_id, event, exc, policy, rng=rng, clock=clock)
                 log.error("handler_failed", stream=stream, consumer=consumer, action=d.action, attempts=d.attempts,
                           delay_s=round(d.delay_s, 1), error=d.reason[:400])
+                outcome = d.action
             except Exception as route_exc:  # noqa: BLE001 — sem registro durável não há ack: a entrega fica pendente
                 log.error("failure_routing_failed", stream=stream, msg_id=msg_id, error=f"{type(route_exc).__name__}"[:200])
-                continue
-        try:  # ack só depois de sucesso ou de a falha estar gravada (retry/DLQ)
-            await bus.ack(stream, GROUP, msg_id)
-        except Exception:  # noqa: BLE001
-            log.error("ack_failed", stream=stream, msg_id=msg_id)
+                return "pending"
+        if outcome == "sent" and key:
+            try:
+                await sink.mark_delivered(key)
+            except Exception:  # noqa: BLE001 — o envio já saiu: segue para o ack mesmo assim
+                log.error("delivery_mark_failed", stream=stream, msg_id=msg_id)
+    try:
+        await sink.ack(stream, GROUP, msg_id)
+    except Exception:  # noqa: BLE001
+        log.error("ack_failed", stream=stream, msg_id=msg_id)
+    return outcome
+
+
+async def _loop(stream: str, handler, consumer: str) -> None:
+    policy = _policy(stream)
+    async for msg_id, event in bus.consume(stream, GROUP, consumer):
+        await process_message(stream, handler, msg_id, event, policy, consumer=consumer)
 
 
 async def _retry_pump() -> None:

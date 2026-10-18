@@ -7,21 +7,31 @@ Usado pelo orquestrador (brain/core/orchestrator._loop). Sem dependências: dá 
   sem DLQ, para o replay nunca reenviar marketing revogado nem +55 pausado. Não herda de PermanentError por isso.
 - Demais falhas → retry até max_attempts; depois, DLQ com motivo, payload, tentativas e carimbos de hora.
 - Atraso da tentativa n (n ≥ 1): min(cap, base·2^(n-1)) com jitter de ±ratio; respeita Retry-After quando houver.
+- Relógio (`clock`) e aleatoriedade (`rng`) são injetáveis para teste.
+- Envio: `delivery_id` (id da 1ª entrega no stream) acompanha o evento nos retries; o orquestrador marca o envio
+  como feito por essa chave e não reenvia se a mesma entrega voltar (worker caiu entre o envio e o ack).
+- DLQ sem segredos: payload com campos sensíveis trocados por ***REDACTED*** (telefone fica: é o destino do replay);
+  last_error com segredos e telefones mascarados (brain/core/logsafe.py).
 """
 from __future__ import annotations
 
 import random
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
-from brain.core.logsafe import redact
+from brain.core.logsafe import redact, redact_value
 
 META_KEY = "_delivery"          # metadados de entrega guardados dentro do evento (tentativas, primeiro erro)
 
 
 class PermanentError(Exception):
-    """Falha que não melhora com retry (destinatário inválido, 130497, payload recusado). Vai direto para a DLQ."""
+    """Falha que não melhora com retry (destinatário inválido, 130497, payload recusado). Vai direto para a DLQ.
+    `code` = código de erro do destino (ex.: 130497 da Meta), se houver."""
+
+    def __init__(self, message: str, code: Any = None) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class BlockedSendError(Exception):
@@ -63,7 +73,7 @@ def http_failure(label: str, status: int, retry_after: str | None = None, code: 
         except ValueError:
             ra = None
         return TransientError(msg, retry_after=ra)
-    return PermanentError(msg)
+    return PermanentError(msg, code=code)
 
 
 def is_permanent(exc: BaseException) -> bool:
@@ -83,6 +93,7 @@ class Decision:
     attempts: int               # tentativas já feitas (incluindo a que acabou de falhar)
     delay_s: float = 0.0
     reason: str = ""
+    error_code: Any = None
 
 
 def decide(event: dict[str, Any], exc: BaseException, policy: RetryPolicy, rng: random.Random | None = None) -> Decision:
@@ -90,11 +101,24 @@ def decide(event: dict[str, Any], exc: BaseException, policy: RetryPolicy, rng: 
     reason = redact(f"{type(exc).__name__}: {exc}")[:500]      # mensagens de erro podem trazer URL com token
     if isinstance(exc, BlockedSendError):
         return Decision("discard", attempts, reason=f"blocked · {reason}")
+    code = getattr(exc, "code", None)
     if is_permanent(exc):
-        return Decision("dlq", attempts, reason=f"permanent · {reason}")
+        return Decision("dlq", attempts, reason=f"permanent · {reason}", error_code=code)
     if attempts >= policy.max_attempts:
-        return Decision("dlq", attempts, reason=f"max_attempts({policy.max_attempts}) · {reason}")
-    return Decision("retry", attempts, policy.delay(attempts, getattr(exc, "retry_after", None), rng), reason)
+        return Decision("dlq", attempts, reason=f"max_attempts({policy.max_attempts}) · {reason}", error_code=code)
+    return Decision("retry", attempts, policy.delay(attempts, getattr(exc, "retry_after", None), rng), reason, code)
+
+
+def with_delivery_id(event: dict[str, Any], msg_id: str) -> dict[str, Any]:
+    """Na 1ª entrega, grava o id do stream como chave do envio; nos retries a chave já vem no evento."""
+    meta = event.get(META_KEY) or {}
+    if meta.get("delivery_id"):
+        return event
+    return {**event, META_KEY: {**meta, "delivery_id": msg_id}}
+
+
+def delivery_id(event: dict[str, Any]) -> str | None:
+    return (event.get(META_KEY) or {}).get("delivery_id")
 
 
 def with_attempt(event: dict[str, Any], decision: Decision, now: float | None = None) -> dict[str, Any]:
@@ -107,25 +131,30 @@ def with_attempt(event: dict[str, Any], decision: Decision, now: float | None = 
 
 
 def dlq_record(stream: str, msg_id: str, event: dict[str, Any], decision: Decision, now: float | None = None) -> dict[str, Any]:
-    """Registro da DLQ: fila de origem, id original, motivo, tentativas, carimbos e o payload completo para reprocessar."""
+    """Registro da DLQ: fila de origem, id original, motivo/last_error, código, tentativas, carimbos e o payload para
+    reprocessar — sem segredos (campos sensíveis viram ***REDACTED***; o destino fica para o replay funcionar)."""
     now = time.time() if now is None else now
     meta = event.get(META_KEY) or {}
-    payload = {k: v for k, v in event.items() if k != META_KEY}
-    return {"source_stream": stream, "source_id": msg_id, "reason": redact(decision.reason), "attempts": decision.attempts,
+    payload = redact_value({k: v for k, v in event.items() if k != META_KEY}, phones=False)
+    last_error = redact(decision.reason)
+    return {"source_stream": stream, "source_id": msg_id, "delivery_id": meta.get("delivery_id"), "reason": last_error,
+            "last_error": last_error, "error_code": decision.error_code, "attempts": decision.attempts,
             "first_failed_at": meta.get("first_failed_at", now), "dead_at": now, "payload": payload}
 
 
 async def route_failure(sink: Any, stream: str, msg_id: str, event: dict[str, Any], exc: BaseException,
-                        policy: RetryPolicy, rng: random.Random | None = None) -> Decision:
+                        policy: RetryPolicy, rng: random.Random | None = None,
+                        clock: Callable[[], float] | None = None) -> Decision:
     """Grava a falha de forma durável (retry agendado ou DLQ). Só depois disso o chamador pode dar ack.
     `sink` expõe schedule_retry(stream, event, delay_s) e dead_letter(record) — brain.core.bus em produção."""
+    now = clock() if clock else None
     decision = decide(event, exc, policy, rng)
     if decision.action == "discard":
         return decision                                         # o registro fica no log handler_failed do chamador
     if decision.action == "retry":
-        await sink.schedule_retry(stream, with_attempt(event, decision), decision.delay_s)
+        await sink.schedule_retry(stream, with_attempt(event, decision, now), decision.delay_s)
     else:
-        await sink.dead_letter(dlq_record(stream, msg_id, with_attempt(event, decision), decision))
+        await sink.dead_letter(dlq_record(stream, msg_id, with_attempt(event, decision, now), decision, now))
     return decision
 
 

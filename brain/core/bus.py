@@ -7,6 +7,7 @@ Streams:
   alerts    — avisos para o CEO                                 → consumidas pelo despachante (WhatsApp do CEO)
   dlq       — eventos que esgotaram as tentativas (motivo, payload, tentativas, horários) → scripts/dlq.py
   retry:<stream> (ZSET) — reentregas agendadas com backoff; o orquestrador as devolve ao stream quando vencem
+  delivered:<id> (chave com TTL) — envio já feito; evita mensagem duplicada se a mesma entrega voltar
 """
 from __future__ import annotations
 
@@ -124,6 +125,18 @@ async def dlq_replay(dlq_id: str, event: dict[str, Any], stream: str, audit: dic
     ok = await client().eval(_REPLAY_LUA, 3, DLQ, stream, DLQ_AUDIT, dlq_id,
                              json.dumps(event, ensure_ascii=False, default=str), json.dumps(audit, default=str))
     return bool(ok)
+
+
+DELIVERED_TTL_S = 7 * 24 * 3600
+
+
+async def already_delivered(delivery_id: str) -> bool:
+    """True se esta entrega (chave estável entre retries) já foi enviada: não enviar de novo, só dar ack."""
+    return bool(await client().exists(f"delivered:{delivery_id}"))
+
+
+async def mark_delivered(delivery_id: str, ttl_s: int = DELIVERED_TTL_S) -> None:
+    await client().set(f"delivered:{delivery_id}", "1", ex=ttl_s)
 
 
 # ───────────────────────── chaves auxiliares ─────────────────────────

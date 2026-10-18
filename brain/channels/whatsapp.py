@@ -10,7 +10,7 @@ import structlog
 
 from brain.channels import delivery_failures
 from brain.core import bus, db
-from brain.core.retry import http_failure
+from brain.core.retry import PermanentError, http_failure
 from brain.settings import get_settings
 
 log = structlog.get_logger(__name__)
@@ -113,7 +113,9 @@ async def send(event: dict[str, Any]) -> None:
                     category=delivery_failures.CAT_COUNTRY_RESTRICTED, source="sync", to=to, ref=delivery_failures.outbound_ref(event),
                     lead_id=event.get("lead_id"), error_code=delivery_failures.COUNTRY_RESTRICTED,
                     fbtrace_id=(err.get("error") or {}).get("fbtrace_id"), offer_alt_route=event.get("kind") != "ceo_alert")
-                return
+                # erro tipado para a fila: sem retentativa, direto ao stream dlq (sem número nem corpo na mensagem)
+                raise PermanentError(f"whatsapp HTTP {r.status_code} code={delivery_failures.COUNTRY_RESTRICTED}",
+                                     code=delivery_failures.COUNTRY_RESTRICTED)
             log.error("wa_send_failed", status=r.status_code, body=r.text[:500])
             # janela de 24h fechada → precisa de template aprovado
             if "131047" in r.text or "131026" in r.text:

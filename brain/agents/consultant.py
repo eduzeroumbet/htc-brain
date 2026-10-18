@@ -178,7 +178,7 @@ class ConsultantAgent(BaseAgent):
             f"{guardrails.DATA_RULE}\n"
             f"Pedido do cliente:\n{guardrails.untrusted('pedido_cliente', r['summary'] or '', 3000)}\n\n"
             "Monte a proposta AGORA: conversation_history + find_lead; search_catalog (hotel/experience/transfer/package conforme o pedido) e seasonal_price; "
-            "build_quote com os itens e render_quote_pdf. Escreva ao cliente, no idioma dele, a proposta em texto corrido e objetivo (o que inclui, por pessoa e total, "
+            f"build_quote com os itens e proposal_request_id={r['id']} (uma única cotação por solicitação) e render_quote_pdf. Escreva ao cliente, no idioma dele, a proposta em texto corrido e objetivo (o que inclui, por pessoa e total, "
             "'a partir de', validade 48 h, próximo passo = sinal pelo link de pagamento) e inclua a URL do PDF. "
             "Se o catálogo NÃO tiver o que precisa (vazio ou sem o item), NÃO invente preço: chame escalate_to_human(trigger_id='human_requested') com resumo de 5 linhas "
             "e escreva ao cliente uma mensagem curta e honesta: a proposta está sendo finalizada com a equipe de Dubai e chega em até 2 horas (ou amanhã 9h se for madrugada em Dubai), "
