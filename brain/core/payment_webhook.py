@@ -2,7 +2,8 @@
 
 Formato implementado: o do Stripe (`Stripe-Signature: t=<unix>,v1=<hex>[,v1=<hex>]`, assinatura de "<t>.<corpo>"),
 porque /webhooks/stripe é a única rota de pagamento que existe no código. Outro provedor (Tap etc.) precisa de
-um verificador próprio seguindo a documentação dele — não reaproveitar este formato.
+um verificador próprio seguindo a documentação dele — não reaproveitar este formato. O webchat usa o mesmo formato
+(`verify_signature`) porque quem assina é o próprio site, não um provedor externo.
 
 Regras:
 - sem segredo configurado → rejeita sempre (a rota fica desligada; nunca "aceita em dev");
@@ -50,9 +51,9 @@ def _parse(header: str) -> tuple[int, list[str]]:
     return ts, sigs
 
 
-def verify(raw_body: bytes, header: str | None, secret: str, tolerance_s: int = DEFAULT_TOLERANCE_S,
-           now: float | None = None) -> dict[str, Any]:
-    """Devolve o evento (dict) se autêntico; senão levanta SignatureError. Nada é processado antes disto."""
+def verify_signature(raw_body: bytes, header: str | None, secret: str, tolerance_s: int = DEFAULT_TOLERANCE_S,
+                     now: float | None = None) -> None:
+    """Só a assinatura e a janela; levanta SignatureError. Também usada pelo webchat (brain/channels/webchat.py)."""
     if not secret or not secret.strip():
         raise SignatureError(403, "webhook_secret_not_configured")
     if not header:
@@ -65,8 +66,14 @@ def verify(raw_body: bytes, header: str | None, secret: str, tolerance_s: int = 
     if tolerance_s <= 0 or abs(now - ts) > tolerance_s:   # tolerância sempre finita
         raise SignatureError(403, "timestamp_out_of_tolerance")
     expected = hmac.new(secret.encode(), f"{ts}.".encode() + raw_body, hashlib.sha256).hexdigest()
-    if not any(hmac.compare_digest(expected, s) for s in sigs):
+    if not any(hmac.compare_digest(expected.encode(), s.encode()) for s in sigs):   # bytes: não-ASCII não vira 500
         raise SignatureError(403, "signature_invalid")
+
+
+def verify(raw_body: bytes, header: str | None, secret: str, tolerance_s: int = DEFAULT_TOLERANCE_S,
+           now: float | None = None) -> dict[str, Any]:
+    """Devolve o evento (dict) se autêntico; senão levanta SignatureError. Nada é processado antes disto."""
+    verify_signature(raw_body, header, secret, tolerance_s, now)
     try:
         event = json.loads(raw_body)
     except ValueError:

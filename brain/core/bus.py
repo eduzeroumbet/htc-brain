@@ -137,6 +137,21 @@ async def rate_limit(key: str, limit: int, window_s: int) -> bool:
     return n <= limit
 
 
+async def rate_limit_retry_after(key: str, limit: int, window_s: int) -> int:
+    """Como rate_limit (janela fixa), mas devolve 0 se cabe ou os segundos até a janela reabrir (para o Retry-After)."""
+    r = client()
+    n = await r.incr(key)
+    if n == 1:
+        await r.expire(key, window_s)
+    if n <= limit:
+        return 0
+    ttl = await r.ttl(key)
+    if ttl < 0:  # chave sem expiração (queda entre INCR e EXPIRE): nunca bloquear para sempre
+        await r.expire(key, window_s)
+        ttl = window_s
+    return max(int(ttl), 1)
+
+
 async def cache_get(key: str) -> Any | None:
     v = await client().get(key)
     return json.loads(v) if v else None

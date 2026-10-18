@@ -83,7 +83,7 @@ Webhooks a registrar (todos em `https://SEU_DOMINIO`):
 | WhatsApp Cloud API | `/webhooks/whatsapp` | Meta for Developers → app → WhatsApp → Configuration |
 | Messenger + Instagram | `/webhooks/meta` | Meta for Developers → app → Webhooks |
 | Telegram | `/webhooks/telegram` | `setWebhook` na Bot API (o `make telegram-webhook` faz isso) |
-| Webchat | `/webhooks/webchat` | widget em `brain/channels/webchat.py` (snippet no final do arquivo) |
+| Webchat | `/webhooks/webchat` | widget em `brain/channels/webchat.py` (snippet no início do arquivo); exige assinatura HMAC feita pelo servidor do site (`WEBCHAT_SIGNING_SECRET`) e tem limite por IP e por sessão (`WEBCHAT_RATE_LIMIT_*`) |
 | E-mail | polling IMAP a cada 60 s | `.env` (`IMAP_*`, `SMTP_*`) |
 
 ## Como a máquina pensa

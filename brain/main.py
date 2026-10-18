@@ -217,7 +217,22 @@ async def huda_webhook(request: Request) -> dict:
 # ───────────────────────── Webchat ─────────────────────────
 @app.post("/webhooks/webchat")
 async def webchat_webhook(request: Request) -> dict:
-    n = await webchat.handle_post(await request.json())
+    """Só processa depois de verificar a assinatura (HMAC sobre o corpo bruto, tempo constante, janela anti-replay)
+    e os limites por IP e por sessão; recusa sem detalhe ao cliente (o motivo vai só para o log)."""
+    cl = request.headers.get("content-length", "")
+    if cl.isdigit() and int(cl) > get_settings().webchat_max_body_bytes:   # antes de ler o corpo
+        raise HTTPException(413)
+    raw = await request.body()
+    try:
+        payload = webchat.verify(raw, request.headers.get("X-Webchat-Signature"))
+    except payment_webhook.SignatureError as exc:
+        log.warning("webchat_rejected", reason=exc.reason)
+        raise HTTPException(exc.status) from None
+    wait = await webchat.retry_after(request.client.host if request.client else None, payload["session_id"])
+    if wait:
+        log.warning("webchat_rate_limited", retry_after=wait)
+        raise HTTPException(429, headers={"Retry-After": str(wait)})
+    n = await webchat.handle_post(payload)
     return {"queued": n}
 
 

@@ -73,7 +73,14 @@ class Settings(BaseSettings):
     smtp_user: str = Field("", alias="SMTP_USER")
     smtp_password: str = Field("", alias="SMTP_PASSWORD")
     smtp_from: str = Field("", alias="SMTP_FROM")
-    webchat_signing_secret: str = Field("", alias="WEBCHAT_SIGNING_SECRET")
+    webchat_signing_secret: str = Field("", alias="WEBCHAT_SIGNING_SECRET")              # sem ele /webhooks/webchat recusa tudo
+    webchat_signature_tolerance_s: int = Field(600, alias="WEBCHAT_SIGNATURE_TOLERANCE_SECONDS")   # janela anti-replay
+    webchat_max_body_bytes: int = Field(8192, alias="WEBCHAT_MAX_BODY_BYTES")
+    webchat_max_text_chars: int = Field(2000, alias="WEBCHAT_MAX_TEXT_CHARS")
+    webchat_rate_limit_ip: int = Field(30, alias="WEBCHAT_RATE_LIMIT_IP")                # requisições por IP por janela
+    webchat_rate_limit_ip_window_s: int = Field(60, alias="WEBCHAT_RATE_LIMIT_IP_WINDOW_SECONDS")
+    webchat_rate_limit_session: int = Field(60, alias="WEBCHAT_RATE_LIMIT_SESSION")      # requisições por sessão por janela
+    webchat_rate_limit_session_window_s: int = Field(3600, alias="WEBCHAT_RATE_LIMIT_SESSION_WINDOW_SECONDS")
     huda_webhook_secret: str = Field("", alias="HUDA_WEBHOOK_SECRET")   # Huda (Manus/Evolution) → cérebro
 
     # WhatsApp para +55: pausado até o teste de entrega passar (erro 130497). Só humano liga; nenhum código liga sozinho.
