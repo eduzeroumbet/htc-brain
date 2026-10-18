@@ -65,15 +65,15 @@ def redact(text: str, phones: bool = True) -> str:
     return mask_phones(text) if phones else text
 
 
-def redact_value(value: Any, key: str | None = None) -> Any:
+def redact_value(value: Any, key: str | None = None, phones: bool = True) -> Any:
     if key is not None and SENSITIVE_KEYS.search(key) and value not in (None, "", True, False):
         return REDACTED
     if isinstance(value, str):
-        return redact(value)
+        return redact(value, phones)
     if isinstance(value, dict):
-        return {k: redact_value(v, str(k)) for k, v in value.items()}
+        return {k: redact_value(v, str(k), phones) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
-        return type(value)(redact_value(v) for v in value)
+        return type(value)(redact_value(v, phones=phones) for v in value)
     if isinstance(value, BaseException):
         return redact(f"{type(value).__name__}: {value}")
     return value

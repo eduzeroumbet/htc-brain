@@ -13,10 +13,18 @@ import pytest
 
 from brain.channels import delivery_failures as df
 from brain.channels import dispatch, whatsapp
+from brain.core.retry import PermanentError, TransientError
 from brain.settings import ROOT, Settings, alt_route_config
 from tests.delivery.conftest import AE, BR, GB, IN, restricted_body
 
 OPT_OUT = ["PARAR", "STOP", "SAIR", "UNSUBSCRIBE", "ألغِ", "रोकें"]
+
+
+async def dispatch_blocked(event: dict[str, Any]) -> None:
+    """O 130497 sai do envio como PermanentError(code=130497): a fila manda direto ao stream dlq, sem retentar."""
+    with pytest.raises(PermanentError) as info:
+        await dispatch(event)
+    assert info.value.code == 130497
 
 
 def wa_event(to: str = BR, text: str = "Olá! Segue o roteiro.", **extra: Any) -> dict[str, Any]:
@@ -51,7 +59,7 @@ def br_enabled(settings: Settings) -> Settings:
 # 1 ─ critério de pronto: sem retentativa
 async def test_sync_130497_not_retried(br_enabled, approved_cfg, br_lead, fake_bus, graph):
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert len(graph.calls) == 1
     assert not [e for e in fake_bus.on("outbound") if e["channel"] == "whatsapp"]
@@ -94,7 +102,7 @@ def test_extract_error_codes_all_paths():
 # 3 ─ critério de pronto: registro com código e mercado, sem dado pessoal
 async def test_event_has_code_and_market(br_enabled, approved_cfg, br_lead, fake_bus, graph, capsys):
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     [ev] = br_lead.events
     assert ev["error_code"] == 130497
@@ -110,7 +118,7 @@ async def test_event_has_code_and_market(br_enabled, approved_cfg, br_lead, fake
 # 4 ─ critério de pronto: rota alternativa disparada, uma vez, por outro canal
 async def test_alt_route_dispatched(br_enabled, approved_cfg, br_lead, fake_bus, graph):
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     [msg] = fake_bus.on("outbound")
     assert msg["channel"] == "messenger" and msg["channel_user_id"] == "psid-1"
@@ -145,7 +153,7 @@ async def test_idempotent(br_enabled, approved_cfg, br_lead, fake_bus, graph):
     assert len(fake_bus.on("outbound")) == 1
 
     graph.respond(400, restricted_body())                     # outro envio ao mesmo lead dentro de 24 h
-    await dispatch(wa_event(text="Outra mensagem", lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(text="Outra mensagem", lead_id="lead-wa"))
     assert len(br_lead.events) == 2
     assert br_lead.events[1]["alt_route_status"] == "skipped_recent"
     assert len(fake_bus.on("outbound")) == 1
@@ -156,7 +164,7 @@ async def test_idempotent(br_enabled, approved_cfg, br_lead, fake_bus, graph):
 async def test_optout_blocks_alt_route(br_enabled, approved_cfg, br_lead, fake_bus, graph, term):
     br_lead.inbound.append(("lead-wa", term))
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert fake_bus.on("outbound") == []
     assert br_lead.events[0]["alt_route_status"] == "skipped_opted_out"
@@ -169,7 +177,7 @@ async def test_optout_blocks_alt_route(br_enabled, approved_cfg, br_lead, fake_b
 async def test_dsar_or_withdrawal_blocks_alt_route(br_enabled, approved_cfg, br_lead, fake_bus, graph, dsar, expected):
     br_lead.dsar.append({"lead_id": "lead-ms", **dsar})
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert fake_bus.on("outbound") == []
     assert br_lead.events[0]["alt_route_status"] == expected
@@ -185,7 +193,7 @@ def test_opt_out_matcher():
 async def test_text_not_approved(br_enabled, br_lead, fake_bus, graph):
     assert alt_route_config()["approved"] is False   # arquivo real do repositório
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert fake_bus.on("outbound") == []
     assert br_lead.events[0]["alt_route_status"] == "skipped_text_not_approved"
@@ -196,7 +204,7 @@ async def test_no_channels_configured(br_enabled, approved_cfg, br_lead, fake_bu
     for attr in ("alt_route_webchat_url", "alt_route_email", "alt_route_messenger_url", "alt_route_instagram_handle"):
         setattr(br_enabled, attr, "")
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert fake_bus.on("outbound") == []
     assert br_lead.events[0]["alt_route_status"] == "skipped_no_channels"
@@ -208,7 +216,7 @@ async def test_unreachable_no_whatsapp_loop(br_enabled, approved_cfg, fake_db, f
     fake_db.add_lead("lead-wa", "whatsapp", BR, phone=f"+{BR}")
     fake_db.inbound.append(("lead-wa", "Oi"))
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(lead_id="lead-wa"))
+    await dispatch_blocked(wa_event(lead_id="lead-wa"))
 
     assert len(graph.calls) == 1
     assert fake_bus.on("outbound") == []
@@ -218,7 +226,8 @@ async def test_unreachable_no_whatsapp_loop(br_enabled, approved_cfg, fake_db, f
 
 async def test_ceo_alert_130497_does_not_loop(br_enabled, approved_cfg, fake_db, fake_bus, graph):
     graph.respond(400, restricted_body())
-    await whatsapp.send({"channel_user_id": BR, "text": "alerta", "kind": "ceo_alert"})
+    with pytest.raises(PermanentError):
+        await whatsapp.send({"channel_user_id": BR, "text": "alerta", "kind": "ceo_alert"})
 
     assert len(graph.calls) == 1 and len(fake_db.events) == 1
     assert fake_bus.on("alerts") == [] and fake_bus.on("outbound") == []
@@ -238,7 +247,7 @@ def test_market_mapping():
 async def test_130497_other_market_no_alt_route(settings, approved_cfg, fake_db, fake_bus, graph):
     fake_db.add_lead("lead-in", "whatsapp", IN, phone=f"+{IN}")
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(to=IN, lead_id="lead-in"))
+    await dispatch_blocked(wa_event(to=IN, lead_id="lead-in"))
 
     [ev] = fake_db.events
     assert (ev["market_code"], ev["country_prefix"], ev["error_code"]) == ("IN", "+91", 130497)
@@ -250,9 +259,10 @@ async def test_130497_other_market_no_alt_route(settings, approved_cfg, fake_db,
 async def test_dashboard_separate_counter(settings, approved_cfg, br_lead, fake_bus, graph):
     await dispatch(wa_event(text="pausado", lead_id="lead-wa"))           # guarda do Brasil
     graph.respond(400, restricted_body())
-    await dispatch(wa_event(to=IN, text="restrito"))                       # 130497 real
+    await dispatch_blocked(wa_event(to=IN, text="restrito"))                       # 130497 real
     graph.respond(400, {"error": {"code": 131047, "message": "Re-engagement message"}})
-    await dispatch(wa_event(to=AE, text="janela fechada"))                 # outra falha
+    with pytest.raises(PermanentError):
+        await dispatch(wa_event(to=AE, text="janela fechada"))             # outra falha (4xx: DLQ pela fila)
 
     out = await df.dashboard_counts(30)
     assert out["totals"] == {"wa_country_restricted": 1, "wa_br_paused_by_flag": 1}
@@ -319,14 +329,15 @@ def test_flag_default_false_and_never_set(monkeypatch):
 
 
 # 14 ─ outros erros mantêm o comportamento atual
-@pytest.mark.parametrize("status, body, runs", [
-    (400, {"error": {"code": 131047, "message": "Re-engagement message"}}, 1),
-    (500, {"error": {"code": 1, "message": "Unknown error"}}, 0),
-    (502, {}, 0),
+@pytest.mark.parametrize("status, body, runs, exc", [
+    (400, {"error": {"code": 131047, "message": "Re-engagement message"}}, 1, PermanentError),
+    (500, {"error": {"code": 1, "message": "Unknown error"}}, 0, TransientError),
+    (502, {}, 0, TransientError),
 ])
-async def test_other_errors_unchanged(settings, fake_db, fake_bus, graph, status, body, runs):
+async def test_other_errors_unchanged(settings, fake_db, fake_bus, graph, status, body, runs, exc):
     graph.respond(status, body)
-    await dispatch(wa_event(to=AE))
+    with pytest.raises(exc):                       # erro tipado: a fila decide retry (5xx) ou DLQ (4xx)
+        await dispatch(wa_event(to=AE))
 
     assert len(graph.calls) == 1
     assert fake_db.events == [] and len(fake_db.agent_runs) == runs
