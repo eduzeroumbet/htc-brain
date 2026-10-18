@@ -1,0 +1,113 @@
+# Descadastro no WhatsApp — o que fica FORA dos seis termos originais (PARAR, STOP, SAIR, UNSUBSCRIBE, ألغِ, रोकें).
+# Lido por brain/core/descadastro.py. Decisão e motivos: docs/decisoes/descadastro-fora-da-lista.md.
+#
+# Escreva os termos como o cliente escreve (com acento, maiúsculas, hífen): o código normaliza a lista e a mensagem do mesmo jeito
+# (NFKC, minúsculas, sem acentos/tashkeel/matras, sem pontuação e emoji, dígitos árabes e devanágari → 0-9, 3+ letras repetidas → 1).
+# Os seis termos originais ficam no código (brain/core/consent.py) e continuam revogando mesmo que alguém os apague daqui.
+#
+# Classes:
+#   lista    → a mensagem inteira é termo da lista (+ cortesia), sem "?": revoga na hora (comportamento atual).
+#   ambiguo  → termo da lista com "?", termo ambíguo, ou pedido claro em forma de pergunta sem marcador de pedido educado:
+#              suspende o marketing, pergunta uma vez e só revoga com "sim".
+#   claro    → pedido claro fora da lista (frase, ou pedido + objeto a até 6 palavras): suspende o marketing e abre tarefa humana.
+#   negacao  → se aparecer numa oração da mensagem, nada acontece ("não pare de me mandar as fotos").
+#
+# REVISÃO NATIVA PENDENTE antes de produção: ar, hi (devanágari e hinglish) e ru. pt, en e de foram escritos por falante fluente.
+revisao_nativa_pendente: [ar, hi, ru]
+
+# dias que a suspensão espera a resposta à pergunta; vencido o prazo sem resposta, o marketing segue suspenso e abre tarefa humana
+prazo_confirmacao_dias: 7
+
+# palavras que podem acompanhar o termo sem mudar o sentido ("STOP please", "PARAR por favor", "abbestellen danke")
+# (somam-se às de consent._CORTESIA)
+cortesia: [porfavor, porfa, obg, vlw, valeu, thx, ty, plz, kindly, bitte, danke, sofort, jetzt, пожалуйста, спасибо, сейчас, kripya, shukriya,
+           dhanyavad, abhi, الان, الآن, حالا, مرسي, شكرًا]
+
+idiomas:
+  pt:
+    lista: [parar, pare, sair, descadastrar, descadastre, descadastra, descadastro, me descadastre, me descadastra, remover meu número,
+            remova meu número, cancelar inscrição, cancelar assinatura]
+    ambiguo: [basta, chega, para, pode parar, cancelar, cancela, cancele, sair de tudo, não quero mais, chega disso]
+    frases: [me tira da lista, me tire da lista, me remova da lista, remova meu número da lista, tirar meu número, me tira dessa lista,
+             não quero receber mais nada, não me mande mais nada, não me envie mais nada]
+    pedidos: [pare de, para de, parar de, parem de, chega de, deixe de, deixa de, quero parar de, não quero mais, não quero receber,
+              não me mande, não me mandem, não mande mais, não me envie, não me enviem, não envie mais, não me manda]
+    objetos: [mensagem, mensagens, msg, msgs, oferta, ofertas, promoção, promoções, propaganda, propagandas, publicidade, marketing,
+              spam, novidades, anúncio, anúncios, whatsapp, zap]
+    # só imperativos: "não para de chegar mensagem" é reclamação, não negação
+    negacao: [não pare, não parem, não pode parar, não precisa parar, não deixe de, não deixa de, não cancele, não cancela,
+              não quero parar, não quero sair, continue mandando, continua mandando, continuem mandando, pode continuar]
+    pedido_educado: [poderia, poderiam, pode, podem, podes, consegue, conseguem, por favor, favor, gentileza]
+
+  en:
+    lista: [stop, stopall, stop all, unsubscribe, unsub, opt out, optout, remove me]
+    ambiguo: [enough, cancel, quit, end, that's enough]
+    frases: [leave me alone, remove my number, remove me from your list, remove me from the list, take me off your list,
+             take me off the list, unsubscribe me, stop messaging me, stop texting me, stop contacting me, don't message me,
+             do not message me, don't text me, do not text me, don't contact me, do not contact me, stop spamming me]
+    pedidos: [stop sending, stop receiving, don't send, dont send, do not send, no more, don't want, dont want, do not want,
+              stop with the]
+    objetos: [message, messages, msg, msgs, text, texts, offer, offers, promo, promos, promotion, promotions, marketing, ad, ads,
+              advertising, spam, newsletter]
+    negacao: [don't stop, dont stop, do not stop, keep sending, keep them coming, don't unsubscribe, don't cancel,
+              dont cancel, do not cancel]
+    pedido_educado: [please, pls, plz, could you, can you, would you, will you, kindly, could u, can u]
+
+  ar:
+    lista: [ألغِ, إلغاء الاشتراك, الغاء الاشتراك, ألغِ اشتراكي, أوقف, اوقف, وقف, توقف, أوقفوا, stop]
+    ambiguo: [بس, خلاص, كفى, كفاية, لا ترسل, إلغاء]
+    frases: [أخرجني من قائمة الإرسال, أخرجني من القائمة, احذف رقمي, امسح رقمي, لا تراسلني, لا تراسلوني, ما تراسلني,
+             لا أريد رسائل, ما أبي رسائل, ما ابغى رسائل]
+    pedidos: [لا ترسل, لا ترسلوا, لا ترسلي, ما ترسل, ما ترسلوا, ما تبعت, ما تبعتلي, ما تبعتولي, لا تبعت, توقف عن, توقفوا عن,
+              أوقف, أوقفوا, لا أريد, ما أبي, ما ابغى, ما أبغى]
+    objetos: [رسائل, الرسائل, رسالة, رساله, رسايل, عروض, العروض, إعلانات, الإعلانات, تسويق, التسويق, ترويج, ترويجية, الترويجية]
+    negacao: [لا تتوقف, لا تتوقفوا, لا تتوقفي, استمر في, استمروا في, لا تلغِ, لا تلغي]
+    pedido_educado: [من فضلك, لو سمحت, ممكن, هل يمكن, هل ممكن, رجاءً, أرجو]
+
+  hi:
+    # devanágari e hinglish (hindi em letras latinas)
+    lista: [रोकें, रोक दो, रोको, बंद करो, बंद करें, बंद कर दो, संदेश मत भेजो, संदेश न भेजें, अब संदेश न भेजें, मैसेज मत भेजो,
+            अनसब्सक्राइब, stop karo, stop kar do, band karo, band kar do, rok do, roko, message mat bhejo, msg mat bhejo,
+            mujhe message mat karo, unsubscribe kar do, unsubscribe karo]
+    ambiguo: [बस, बस करो, हटाओ, रहने दो, bas, bas karo, hatao, rehne do]
+    frases: [मुझे हटा दो, मेरा नंबर हटा दो, mera number hata do, mujhe hata do, list se hata do]
+    pedidos: [मत भेजो, मत भेजिए, मत भेजें, न भेजें, न भेजो, नहीं चाहिए, बंद करो, बंद करें, बंद कर दो, mat bhejo, mat bhejiye,
+              mat bhejna, na bheje, na bhejo, nahi chahiye, nahin chahiye, band karo, band kar do, mat karo]
+    objetos: [संदेश, मैसेज, मेसेज, मार्केटिंग, विज्ञापन, ऑफर, प्रचार, message, messages, msg, msgs, sms, marketing, offer, offers,
+              promotion, promotions, ads]
+    negacao: [बंद मत, मत रोको, मत रोकें, बंद न करें, भेजते रहो, भेजते रहिए, stop mat, band mat, mat roko, rokna mat, bhejte raho,
+              bhejte rahiye]
+    pedido_educado: [कृपया, क्या आप, please, pls, plz, kripya, kya aap, kya ap]
+
+  ru:
+    lista: [стоп, отписаться, отписка, отпишите, отпишите меня, удалите мой номер, удалите меня, stop]
+    ambiguo: [хватит, достаточно, не надо, прекратите, отмена, отменить]
+    frases: [не пишите мне, больше не пишите, не присылайте мне, не беспокойте меня, хватит мне писать, удалите меня из рассылки,
+             отпишите меня от рассылки, уберите меня из рассылки]
+    pedidos: [не присылайте, не отправляйте, не шлите, хватит присылать, хватит слать, прекратите присылать, прекратите отправлять,
+              не хочу получать, не нужны, не нужно]
+    objetos: [сообщения, сообщений, сообщение, рассылку, рассылки, рассылка, рекламу, реклама, рекламы, предложения, предложений,
+              спам, акции, смс]
+    negacao: [не переставайте, не прекращайте, не останавливайтесь, продолжайте присылать, продолжайте отправлять, не отписывайте,
+              не отменяйте]
+    pedido_educado: [пожалуйста, можете, можно, не могли бы, могли бы]
+
+  de:
+    lista: [stopp, stop, abbestellen, abmelden, austragen, abo beenden, keine nachrichten mehr, keine werbung mehr, keine werbung,
+            unsubscribe]
+    ambiguo: [genug, es reicht, aufhören, hör auf, hören sie auf, stornieren, kündigen]
+    frases: [nicht mehr kontaktieren, nicht mehr schreiben, nicht mehr anschreiben, keine werbenachrichten mehr,
+             keine angebote mehr, lassen sie mich in ruhe, lasst mich in ruhe, nehmen sie mich aus, entfernen sie meine nummer,
+             löschen sie meine nummer, tragen sie mich aus]
+    pedidos: [keine, nicht mehr, hören sie auf, hört auf, hör auf, schicken sie keine, senden sie keine]
+    objetos: [nachrichten, nachricht, werbung, werbenachrichten, angebote, newsletter, spam, sms, marketing, mitteilungen]
+    negacao: [hör nicht auf, hören sie nicht auf, hört nicht auf, nicht aufhören, nicht stoppen, nicht abbestellen, nicht abmelden,
+              weiter schicken, weiterhin schicken, schicken sie weiter]
+    pedido_educado: [bitte, können sie, könnten sie, kannst du, könntest du, würden sie]
+
+# resposta à pergunta de confirmação (aceita em qualquer idioma; vale a primeira expressão da mensagem, até 6 palavras)
+respostas:
+  # "yes"/"no" entre aspas: sem elas o YAML lê booleano
+  sim: [sim, s, quero, confirmo, isso, pode, claro, com certeza, ok, "yes", "y", yeah, yep, yup, sure, confirm, okay, نعم, ايوه, أيوه, اي,
+        ايه, أكيد, हाँ, हां, जी, haan, han, ha, haa, ji, да, ага, конечно, подтверждаю, ок, ja, jawohl, genau, gerne]
+  nao: [não, "n", nunca, negativo, "no", nope, nah, لا, كلا, नहीं, ना, nahi, nahin, na, nai, нет, неа, nein, nee]

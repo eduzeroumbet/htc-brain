@@ -25,6 +25,7 @@ Parcerias · MICE · Pessoas · Jurídico · Reputação
   Qua 11:00 parceiras · dia 3 extratos de comissão · Qui 11:00 pipeline MICE · Seg 11:00 pessoas · dia 25 folha · Sex 10:00 jurídico · 12:00 avaliações públicas
 Infra
   */5min SysOps health_cycle (sem LLM; sev1 → diagnose) · Seg 08:00 relatório de infra · 03:30 purge PII · */30min rollup KPIs · */60s poll e-mail
+  */1h confirmações de descadastro sem resposta no prazo → tarefa humana (marketing segue suspenso)
 18:00  Frota & Motoristas  — agenda do dia seguinte para carros, motoristas e guias (HCTE)
 Seg 08:30 Frota            — multas RTA, horas, revisões (HCTE)
 Último dia 17:00 Frota     — insumo da folha dos motoristas (HCTE)
@@ -38,7 +39,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from brain.core import bus, db, handoff
+from brain.core import bus, consent, db, handoff
 from brain.settings import active_markets, agency_config
 
 log = structlog.get_logger(__name__)
@@ -100,6 +101,7 @@ def build() -> AsyncIOScheduler:
     s.add_job(enqueue, IntervalTrigger(hours=1), args=["auditor", "sla_check"], id="audit_sla")
     s.add_job(enqueue, CronTrigger(day_of_week="sun", hour=20, minute=0), args=["auditor", "weekly_improvements"], id="audit_weekly")
     s.add_job(db.purge_expired_pii, CronTrigger(hour=3, minute=30), id="purge_pii")
+    s.add_job(consent.vencer_confirmacoes, IntervalTrigger(hours=1), id="consent_confirmations")  # silêncio → tarefa humana
     s.add_job(db.rollup_kpis, IntervalTrigger(minutes=30), id="kpis_rollup")
     s.add_job(enqueue, IntervalTrigger(minutes=15), args=["concierge", "in_trip_sweep"], id="concierge")
     s.add_job(enqueue, IntervalTrigger(minutes=5), args=["consultant", "proposal_desk"], id="proposal_desk")   # promessa de 30 min

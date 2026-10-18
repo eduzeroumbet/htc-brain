@@ -122,6 +122,24 @@ triggers:
       Confirma o protocolo VIP (sem exposição, meet & greet presencial, canal direto) e segue a
       conversa normalmente; o caso serve para escalar guia/plantão presencial, não para parar a venda.
 
+  # ───────── consentimento: aberto pelo código (brain/core/consent.py), não pelo roteador; a conversa segue com a IA ─────────
+  - id: consent_review
+    label: "Descadastro a confirmar (fora da lista ou sem resposta)"
+    severity: medium
+    sla_minutes: 1440
+    business_hours_only: true
+    notify_ceo: false
+    conditions:
+      any:
+        - unsubscribe_out_of_list: true                  # pedido claro de parar fora da lista de termos
+        - unsubscribe_confirmation_unanswered_days: 7    # pergunta do caso ambíguo sem resposta no prazo
+    suggested_action: >
+      Ler a conversa. Se for pedido de descadastro, revogar (consent.revogar_marketing, origem revisao_humana) e
+      responder com a confirmação de descadastro; se não for, retomar (consent.retomar_marketing). Até lá o marketing
+      fica suspenso para este contato.
+    ai_reply_before_handoff: >
+      Nenhuma: o cliente já recebeu o aviso de pausa ou a pergunta de confirmação no idioma dele.
+
 # Depois do handoff
 after_handoff:
   ai_stays_in_conversation: true          # a IA continua respondendo perguntas simples enquanto o humano não assume

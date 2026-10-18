@@ -156,6 +156,11 @@ def escalation_config() -> dict[str, Any]:
 
 
 @lru_cache
+def descadastro_config() -> dict[str, Any]:
+    return _load_yaml(CONFIG_DIR / "descadastro.yaml")
+
+
+@lru_cache
 def budgets_config() -> dict[str, Any]:
     return _load_yaml(CONFIG_DIR / "budgets.yaml")
 

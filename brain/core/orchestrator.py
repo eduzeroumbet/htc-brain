@@ -14,7 +14,7 @@ from typing import Any
 import structlog
 
 from brain.channels import dispatch, email as email_ch, whatsapp
-from brain.core import bus, consent, db, guardrails, handoff, registry, retry
+from brain.core import bus, consent, db, descadastro, guardrails, handoff, registry, retry
 from brain.settings import escalation_config, get_settings
 
 log = structlog.get_logger(__name__)
@@ -28,39 +28,75 @@ async def _severe_complaint_confirmed(lead_id: str) -> bool:
     return len(rows) == 2 and all((r["sentiment"] or 0) <= -0.6 for r in rows)
 
 
-async def _handle_consent(event: dict[str, Any], lead: dict[str, Any] | None) -> bool:
-    """Descadastro (PARAR, STOP...) e pedido de exclusão de dados no WhatsApp, antes de qualquer agente.
+_INTENT = {descadastro.LISTA: "unsubscribe", descadastro.AMBIGUO: "unsubscribe_ambiguous", descadastro.CLARO: "unsubscribe_out_of_list"}
 
-    True = tratado aqui (registrou e respondeu com a confirmação transacional no idioma do lead); o consultor não responde.
+
+async def _handle_consent(event: dict[str, Any], lead: dict[str, Any] | None) -> bool:
+    """Descadastro e pedido de exclusão de dados no WhatsApp, antes de qualquer agente (docs/decisoes/descadastro-fora-da-lista.md).
+
+    lista   → revoga e confirma.          ambiguo → suspende e pergunta uma vez; "sim" revoga, "não" retoma.
+    claro   → suspende, avisa e abre tarefa humana (não revoga sozinho).   DSAR → abre o pedido com prazo.
+    True = tratado aqui (registrou e, se cabia, respondeu com mensagem transacional no idioma do lead); o consultor não responde.
     """
     if event["channel"] != "whatsapp":
         return False
     text = event.get("text", "")
-    lang_descadastro = consent.detectar_descadastro(text)
-    lang_dsar = None if lang_descadastro else consent.detectar_dsar(text)
-    if not (lang_descadastro or lang_dsar):
-        return False
+    canal = event["channel"]
+    c = descadastro.classificar(text)
+    lang_dsar = None if c else consent.detectar_dsar(text)
+    resposta = None
+    if not (c or lang_dsar):
+        # resposta à pergunta do caso ambíguo: só consulta o banco se a mensagem parece "sim"/"não"
+        resposta = descadastro.interpretar_resposta(text) if lead else None
+        if not (resposta and await consent.confirmacao_pendente(str(lead["id"]), canal)):  # type: ignore[index]
+            return False
     if lead is None:  # primeira mensagem já é o descadastro/pedido: o lead precisa existir para o registro
-        lead = await db.upsert_lead(event["channel"], event["channel_user_id"], display_name=event.get("display_name"), phone=event.get("phone"))
+        lead = await db.upsert_lead(canal, event["channel_user_id"], display_name=event.get("display_name"), phone=event.get("phone"))
     lead_id = str(lead["id"])
-    lang = consent.idioma_confirmacao(lead.get("language"), lang_descadastro or lang_dsar)
-    if lang_descadastro:
-        await consent.revogar_marketing(lead_id, event["channel"], texto=text, idioma=lang)
-        reply = consent.texto_confirmacao("descadastro", lang)
-    else:
-        req = await consent.abrir_dsar(lead_id, event["channel"], event["channel_user_id"], text,
+    conv = await db.open_conversation(lead_id, canal)
+    conv_id = str(conv["id"])
+    idioma_msg = c.idioma if c else lang_dsar
+    lang = consent.idioma_confirmacao(lead.get("language"), idioma_msg, "dsar" if lang_dsar else "descadastro")
+    reply: str | None = None
+
+    if resposta == "sim":
+        await consent.revogar_marketing(lead_id, canal, texto=text, idioma=lang, origem="whatsapp_confirmacao",
+                                        classe=descadastro.AMBIGUO, resposta=text)
+        reply, intent = consent.texto_confirmacao("descadastro", lang), "unsubscribe_confirmed"
+    elif resposta == "nao":
+        await consent.retomar_marketing(lead_id, canal, resposta=text)
+        reply, intent = consent.texto_confirmacao("mantido", lang), "unsubscribe_declined"
+    elif lang_dsar:
+        req = await consent.abrir_dsar(lead_id, canal, event["channel_user_id"], text,
                                        jurisdiction="LGPD" if lead.get("market_code") == "BR" else None)
-        reply = consent.texto_confirmacao("dsar", lang, prazo=f"{req['due_at']:%d/%m/%Y}")
-    conv = await db.open_conversation(lead_id, event["channel"])
-    await db.log_message(str(conv["id"]), "in", "client", text, channel_message_id=event.get("message_id"), language=lang,
-                         intent="unsubscribe" if lang_descadastro else "dsar_erasure")
-    await db.log_message(str(conv["id"]), "out", "system", reply)
-    await bus.publish(bus.OUTBOUND, {"channel": event["channel"], "channel_user_id": event["channel_user_id"], "text": reply,
-                                     "lead_id": lead_id, "conversation_id": str(conv["id"]), "author": "system",
-                                     "purpose": "transactional", "reply_to": event.get("message_id")})
+        reply, intent = consent.texto_confirmacao("dsar", lang, prazo=f"{req['due_at']:%d/%m/%Y}"), "dsar_erasure"
+    elif c and c.classe == descadastro.LISTA:
+        await consent.revogar_marketing(lead_id, canal, texto=text, idioma=lang, classe=c.classe)
+        reply, intent = consent.texto_confirmacao("descadastro", lang), _INTENT[c.classe]
+    elif c:
+        intent = _INTENT[c.classe]
+        s = await consent.suspender_marketing(lead_id, canal, texto=text, idioma=lang, classe=c.classe)
+        if s["status"] == "revoked":  # já descadastrado: só reconfirma, como no termo da lista
+            reply = consent.texto_confirmacao("descadastro", lang)
+        else:
+            if c.classe == descadastro.CLARO:
+                await consent.abrir_revisao_humana(
+                    lead_id, canal, conversation_id=conv_id,
+                    resumo=f"Pedido de descadastro fora da lista ({c.idioma}, '{c.motivo}'): {text[:300]!r}. Marketing suspenso; não revogado.")
+            if s["nova"]:  # uma mensagem por suspensão: repetir o pedido não repete a pergunta nem o aviso
+                reply = consent.texto_confirmacao("pergunta" if c.classe == descadastro.AMBIGUO else "pausa", lang)
+        log.info("unsubscribe_classified", lead_id=lead_id, detection_class=c.classe, language=c.idioma, rule=c.motivo,
+                 new_suspension=s["nova"], status=s["status"])
+
+    await db.log_message(conv_id, "in", "client", text, channel_message_id=event.get("message_id"), language=lang, intent=intent)
+    if reply:
+        await db.log_message(conv_id, "out", "system", reply)
+        await bus.publish(bus.OUTBOUND, {"channel": canal, "channel_user_id": event["channel_user_id"], "text": reply,
+                                         "lead_id": lead_id, "conversation_id": conv_id, "author": "system",
+                                         "purpose": "transactional", "reply_to": event.get("message_id")})
     if lang_dsar:  # a exclusão é executada por humano: transbordo DSAR (a confirmação ao cliente já saiu acima)
-        await _abrir_transbordos(str(conv["id"]), lead_id, [{"trigger": "dsar", "subtype": "erasure", "detected_by": "keyword",
-                                                             "language": lang_dsar, "details": {"intent": "dsar_erasure"}}])
+        await _abrir_transbordos(conv_id, lead_id, [{"trigger": "dsar", "subtype": "erasure", "detected_by": "keyword",
+                                                     "language": lang_dsar, "details": {"intent": "dsar_erasure"}}])
     return True
 
 
