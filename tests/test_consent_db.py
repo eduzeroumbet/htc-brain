@@ -165,6 +165,102 @@ async def test_dsar_prazo_15_dias_e_idempotente(pg: asyncpg.Connection) -> None:
     assert c["duplicado"] is False and c["id"] != a["id"]
 
 
+# ───────────────────────── 013: suspensão (descadastro fora da lista) ─────────────────────────
+
+
+async def test_suspensao_ambigua_bloqueia_sem_revogar_e_e_idempotente(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "whatsapp", texto="Aceito receber ofertas", idioma="pt")
+    a = await consent.suspender_marketing(lid, "whatsapp", texto="STOP please?", idioma="en", classe="ambiguo")
+    b = await consent.suspender_marketing(lid, "whatsapp", texto="stop?", idioma="en", classe="ambiguo")
+    assert a["nova"] is True and b["nova"] is False and a["id"] == b["id"]
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is False
+    assert await consent.confirmacao_pendente(lid, "whatsapp") is not None
+    row = await pg.fetchrow("""SELECT status, detection_class, source, awaiting_until - recorded_at AS prazo FROM consent_log
+                               WHERE lead_id = $1 AND status = 'suspended'""", lid)
+    assert (row["detection_class"], row["source"], row["prazo"]) == ("ambiguo", "whatsapp_fora_da_lista", timedelta(days=7))
+    assert await pg.fetchval("SELECT count(*) FROM consent_log WHERE lead_id = $1 AND status = 'active'", lid) == 1  # não revogou
+
+
+async def test_nao_retoma_e_sim_revoga(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "whatsapp", texto="Aceito", idioma="pt")
+    await consent.suspender_marketing(lid, "whatsapp", texto="chega", idioma="pt", classe="ambiguo")
+    assert await consent.retomar_marketing(lid, "whatsapp", resposta="não") is True
+    assert await consent.retomar_marketing(lid, "whatsapp", resposta="não") is False
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is True
+    assert await pg.fetchval("SELECT reply_text FROM consent_log WHERE lead_id = $1 AND status = 'lifted'", lid) == "não"
+
+    await consent.suspender_marketing(lid, "whatsapp", texto="parar?", idioma="pt", classe="ambiguo")
+    assert await consent.revogar_marketing(lid, "whatsapp", texto="sim", origem="whatsapp_confirmacao", classe="ambiguo", resposta="sim")
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is False
+    assert await pg.fetchval("SELECT count(*) FROM consent_log WHERE lead_id = $1 AND status IN ('active', 'suspended')", lid) == 0
+    assert await consent.registrar_consentimento(lid, "whatsapp", texto="Quero voltar", idioma="pt") is True  # novo opt-in funciona
+
+
+async def test_retomar_sem_consentimento_anterior_continua_bloqueado(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.suspender_marketing(lid, "whatsapp", texto="genug?", idioma="de", classe="ambiguo")
+    await consent.retomar_marketing(lid, "whatsapp", resposta="nein")
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is False
+
+
+async def test_claro_abre_uma_tarefa_humana_e_nao_revoga(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "whatsapp", texto="Aceito", idioma="pt")
+    s = await consent.suspender_marketing(lid, "whatsapp", texto="parar de mandar mensagem", idioma="pt", classe="claro")
+    assert s["awaiting_until"] is None
+    a = await consent.abrir_revisao_humana(lid, "whatsapp", resumo="fora da lista")
+    b = await consent.abrir_revisao_humana(lid, "whatsapp", resumo="fora da lista")
+    assert a and b and a["duplicado"] is False and b["duplicado"] is True and a["escalation_id"] == b["escalation_id"]
+    esc = await pg.fetchrow("SELECT trigger_id, severity, status FROM escalations WHERE lead_id = $1", lid)
+    assert dict(esc) == {"trigger_id": "consent_review", "severity": "medium", "status": "open"}
+    assert await pg.fetchval("SELECT escalation_id::text FROM consent_log WHERE lead_id = $1 AND status = 'suspended'", lid) == a["escalation_id"]
+    assert await pg.fetchval("SELECT count(*) FROM consent_log WHERE lead_id = $1 AND status = 'revoked'", lid) == 0
+
+
+async def test_silencio_mantem_suspenso_e_abre_tarefa_uma_vez(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "whatsapp", texto="Aceito", idioma="pt")
+    await consent.suspender_marketing(lid, "whatsapp", texto="STOP please?", idioma="en", classe="ambiguo")
+    assert await consent.vencer_confirmacoes() == 0  # ainda no prazo
+    await pg.execute("UPDATE consent_log SET awaiting_until = now() - interval '1 minute' WHERE lead_id = $1 AND status = 'suspended'", lid)
+    assert await consent.confirmacao_pendente(lid, "whatsapp") is None  # "sim"/"não" fora do prazo não valem mais
+    assert await consent.vencer_confirmacoes() == 1
+    assert await consent.vencer_confirmacoes() == 0
+    assert await consent.pode_enviar_marketing(lid, "whatsapp") is False
+    assert await pg.fetchval("SELECT count(*) FROM escalations WHERE lead_id = $1 AND trigger_id = 'consent_review'", lid) == 1
+
+
+async def test_suspender_quem_ja_revogou_nao_cria_linha(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.revogar_marketing(lid, "whatsapp", texto="STOP")
+    s = await consent.suspender_marketing(lid, "whatsapp", texto="stop?", idioma="en", classe="ambiguo")
+    assert s["status"] == "revoked" and s["nova"] is False
+    assert await pg.fetchval("SELECT count(*) FROM consent_log WHERE lead_id = $1", lid) == 1
+
+
+async def test_constraints_da_013(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    with pytest.raises(asyncpg.CheckViolationError):
+        await pg.execute("""INSERT INTO consent_log (lead_id, channel, consent_text, consent_version, source, purpose, status)
+                            VALUES ($1, 'whatsapp', 'x', 'v1', 't', 'marketing', 'lifted')""", lid)  # lifted sem lifted_at
+    with pytest.raises(asyncpg.CheckViolationError):
+        await pg.execute("""INSERT INTO consent_log (lead_id, channel, consent_text, consent_version, source, purpose, detection_class)
+                            VALUES ($1, 'whatsapp', 'x', 'v1', 't', 'marketing', 'outra')""", lid)
+
+
+async def test_reversao_013(pg: asyncpg.Connection) -> None:
+    lid = await _lead(pg)
+    await consent.registrar_consentimento(lid, "whatsapp", texto="Aceito", idioma="pt")
+    await consent.suspender_marketing(lid, "whatsapp", texto="chega", idioma="pt", classe="ambiguo")
+    await pg.execute((ROOT / "db" / "migrations_down" / "013_descadastro_fora_da_lista.sql").read_text())
+    cols = {r["column_name"] for r in await pg.fetch("SELECT column_name FROM information_schema.columns WHERE table_name = 'consent_log'")}
+    assert not {"detection_class", "awaiting_until", "escalation_id", "lifted_at", "reply_text"} & cols
+    assert {r["status"] for r in await pg.fetch("SELECT status FROM consent_log WHERE lead_id = $1", lid)} == {"revoked"}  # falha segura
+    await pg.execute((ROOT / "db" / "migrations" / "013_descadastro_fora_da_lista.sql").read_text())  # e volta
+
+
 async def test_reversao(pg: asyncpg.Connection) -> None:
     await pg.execute((ROOT / "db" / "migrations_down" / "012_consent_log.sql").read_text())
     assert await pg.fetchval("SELECT to_regclass('consent_log')") is None

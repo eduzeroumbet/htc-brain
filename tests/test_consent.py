@@ -94,7 +94,8 @@ def test_dsar_nao_reconhecido(msg: str) -> None:
     ("pt", "en", "pt"),        # "STOP" de um lead brasileiro → português
     ("pt-BR", None, "pt"),
     (None, "ar", "ar"),
-    ("ru", "en", "en"),        # sem texto em russo: idioma da palavra usada
+    ("ru", "en", "ru"),
+    ("kk", "en", "en"),        # sem texto em cazaque: idioma da palavra usada
     (None, None, "en"),
     ("hi", "en", "hi"),
 ])
@@ -102,13 +103,19 @@ def test_idioma_confirmacao(lead: str | None, msg: str | None, esperado: str) ->
     assert consent.idioma_confirmacao(lead, msg) == esperado
 
 
+def test_idioma_confirmacao_do_dsar_so_usa_idioma_com_texto() -> None:
+    assert consent.idioma_confirmacao("ru", None, "dsar") == "en"
+    assert consent.idioma_confirmacao("pt", None, "dsar") == "pt"
+
+
 def test_confirmacoes_existem_em_todos_os_idiomas_e_nao_falam_de_ia() -> None:
     for tipo, textos in consent.CONFIRMACOES.items():
-        assert set(textos) == {"pt", "en", "ar", "hi"}, tipo
+        esperado = {"pt", "en", "ar", "hi"} if tipo == "dsar" else {"pt", "en", "ar", "hi", "ru", "de"}
+        assert set(textos) == esperado, tipo
         for lang, txt in textos.items():
             low = txt.lower()
             for proibido in (" ia ", " ai ", "inteligência artificial", "artificial intelligence", "robô", "bot", "assistente virtual",
-                             "الذكاء الاصطناعي", "एआई"):
+                             "الذكاء الاصطناعي", "एआई", " ии ", "искусственный интеллект", " ki ", "künstliche intelligenz"):
                 assert proibido not in f" {low} ", (tipo, lang, proibido)
     assert "15" in consent.texto_confirmacao("dsar", "pt", prazo="02/11/2026")
     assert "02/11/2026" in consent.texto_confirmacao("dsar", "ar", prazo="02/11/2026")
@@ -123,6 +130,8 @@ class FakeStore:
     def __init__(self) -> None:
         self.leads: dict[tuple[str, str], dict[str, Any]] = {}
         self.marketing: dict[tuple[str, str], str] = {}   # (lead, canal) → active|revoked
+        self.suspensoes: dict[tuple[str, str], dict[str, Any]] = {}   # suspensão aberta (status 'suspended' no consent_log)
+        self.escalations: list[dict[str, Any]] = []
         self.consent_rows = 0
         self.dsar: dict[str, dict[str, Any]] = {}
         self.messages: list[tuple[str, str, str]] = []
@@ -150,18 +159,53 @@ class FakeStore:
     async def revogar_marketing(self, lead_id: str, canal: str, **kw: Any) -> bool:
         if self.marketing.get((lead_id, canal)) == "revoked":
             return False
-        if (lead_id, canal) not in self.marketing:
+        if (lead_id, canal) not in self.marketing and (lead_id, canal) not in self.suspensoes:
             self.consent_rows += 1
         self.marketing[(lead_id, canal)] = "revoked"
+        self.suspensoes.pop((lead_id, canal), None)
         return True
 
     async def motivo_bloqueio_marketing(self, lead_id: str | None, canal: str) -> str | None:
         if not lead_id:
             return "sem_lead"
+        if (lead_id, canal) in self.suspensoes:
+            return "marketing_suspenso"
         return {None: "sem_registro_de_consentimento", "revoked": "consentimento_revogado"}.get(self.marketing.get((lead_id, canal)))
 
     async def dentro_da_janela(self, lead_id: str | None, canal: str, horas: int) -> bool:
         return False
+
+    async def pode_enviar_marketing(self, lead_id: str | None, canal: str) -> bool:
+        return await self.motivo_bloqueio_marketing(lead_id, canal) is None
+
+    async def suspender_marketing(self, lead_id: str, canal: str, *, texto: str, idioma: str | None, classe: str, **kw: Any) -> dict[str, Any]:
+        k = (lead_id, canal)
+        if self.marketing.get(k) == "revoked":
+            return {"status": "revoked", "nova": False}
+        if k in self.suspensoes:
+            return {**self.suspensoes[k], "nova": False}
+        self.consent_rows += 1
+        self.suspensoes[k] = {"status": "suspended", "detection_class": classe, "aguardando": classe == "ambiguo",
+                              "escalation_id": None, "texto": texto}
+        return {**self.suspensoes[k], "nova": True}
+
+    async def confirmacao_pendente(self, lead_id: str, canal: str) -> dict[str, Any] | None:
+        s = self.suspensoes.get((lead_id, canal))
+        return s if s and s["aguardando"] else None
+
+    async def retomar_marketing(self, lead_id: str, canal: str, **kw: Any) -> bool:
+        return self.suspensoes.pop((lead_id, canal), None) is not None
+
+    async def abrir_revisao_humana(self, lead_id: str, canal: str, *, resumo: str, conversation_id: str | None = None) -> dict[str, Any] | None:
+        s = self.suspensoes.get((lead_id, canal))
+        if not s:
+            return None
+        if s["escalation_id"]:
+            return {"escalation_id": s["escalation_id"], "duplicado": True}
+        s["escalation_id"] = f"esc-{len(self.escalations) + 1}"
+        self.escalations.append({"id": s["escalation_id"], "lead_id": lead_id, "trigger_id": "consent_review", "summary": resumo,
+                                 "conversation_id": conversation_id})
+        return {"escalation_id": s["escalation_id"], "duplicado": False}
 
     async def abrir_dsar(self, lead_id: str, canal: str, requester: str, texto: str, **kw: Any) -> dict[str, Any]:
         if lead_id in self.dsar:
@@ -184,7 +228,8 @@ def store(monkeypatch: pytest.MonkeyPatch) -> FakeStore:
     s = FakeStore()
     for name in ("upsert_lead", "fetchrow", "open_conversation", "log_message"):
         monkeypatch.setattr(orchestrator.db, name, getattr(s, name))
-    for name in ("revogar_marketing", "motivo_bloqueio_marketing", "dentro_da_janela", "abrir_dsar"):
+    for name in ("revogar_marketing", "motivo_bloqueio_marketing", "dentro_da_janela", "pode_enviar_marketing", "abrir_dsar",
+                 "suspender_marketing", "confirmacao_pendente", "retomar_marketing", "abrir_revisao_humana"):
         monkeypatch.setattr(consent, name, getattr(s, name))
     monkeypatch.setattr(orchestrator.bus, "publish", s.publish)
 
@@ -392,10 +437,11 @@ class FakeConsentLog:
             self.rows.append({"id": len(self.rows) + 1, "lead_id": a[0], "channel": a[1], "recorded_at": self.agora,
                               "status": "revoked", "revoked_at": self.agora})
             return "INSERT 0 1"
-        if "channel <> $2" in sql:  # all_channels: demais canais ativos do lead
-            alvo = [r for r in self.rows if r["lead_id"] == a[0] and r["channel"] != a[1] and r["status"] == "active"]
-        else:
-            alvo = [r for r in self.rows if r["id"] == a[0]]
+        abertos = ("active", "suspended")
+        if "channel <> $2" in sql:  # all_channels: demais canais do lead com consentimento ativo ou suspenso
+            alvo = [r for r in self.rows if r["lead_id"] == a[0] and r["channel"] != a[1] and r["status"] in abertos]
+        else:  # o próprio canal: consentimento ativo e suspensão aberta
+            alvo = [r for r in self.rows if r["lead_id"] == a[0] and r["channel"] == a[1] and r["status"] in abertos]
         for r in alvo:
             r.update(status="revoked", revoked_at=self.agora)
         return f"UPDATE {len(alvo)}"
@@ -613,3 +659,166 @@ async def test_t12_descadastrado_reabre_contato_resposta_sai_followup_nao(clog: 
     await dispatch(_mk("L9", purpose="session_reply", text="Segue o orçamento"))
     await dispatch(_mk("L9", text="Que tal um jantar no deserto?"))  # follow-up promocional sem novo opt-in
     assert [e["text"] for e in clog.sent] == ["Segue o orçamento"]
+
+
+# ───────────────────────── fluxo: fora da lista (docs/decisoes/descadastro-fora-da-lista.md) ─────────────────────────
+
+
+def _lead_ativo(store: FakeStore, cuid: str = "5511999", lid: str = "L1", language: str = "pt", market: str = "BR") -> None:
+    store.leads[("whatsapp", cuid)] = {"id": lid, "channel": "whatsapp", "language": language, "market_code": market}
+    store.marketing[(lid, "whatsapp")] = "active"
+
+
+async def test_criterio_parar_de_mandar_mensagem_suspende_abre_tarefa_e_nao_revoga(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("parar de mandar mensagem", "5511999"))
+    assert store.marketing[("L1", "whatsapp")] == "active"            # não revogou
+    assert store.suspensoes[("L1", "whatsapp")]["detection_class"] == "claro"
+    assert await consent.pode_enviar_marketing("L1", "whatsapp") is False  # mas a guarda já bloqueia
+    [esc] = store.escalations
+    assert esc["trigger_id"] == "consent_review" and esc["conversation_id"] == "conv-L1" and "não revogado" in esc["summary"]
+    [out] = store.outbound
+    assert out["purpose"] == "transactional" and out["text"] == consent.CONFIRMACOES["pausa"]["pt"]
+    assert store.consultant_calls == 0
+
+    await orchestrator.handle_inbound(_wa("parar de mandar mensagem", "5511999"))  # idempotente
+    assert len(store.escalations) == 1 and len(store.outbound) == 1 and store.consent_rows == 1
+
+
+async def test_criterio_stop_please_interrogacao_suspende_e_pergunta_uma_vez(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store, "447700900000", "L2", "en", "GB")
+    await orchestrator.handle_inbound(_wa("STOP please?", "447700900000"))
+    assert store.marketing[("L2", "whatsapp")] == "active"
+    assert store.suspensoes[("L2", "whatsapp")]["detection_class"] == "ambiguo"
+    assert store.escalations == []                                    # sem tarefa humana por padrão
+    [out] = store.outbound
+    assert out["text"] == consent.CONFIRMACOES["pergunta"]["en"] and out["purpose"] == "transactional"
+
+    await orchestrator.handle_inbound(_wa("stop?", "447700900000"))   # outra ambígua durante a espera: não repete a pergunta
+    assert len(store.outbound) == 1 and store.consultant_calls == 0
+    assert [m[0] for m in store.messages] == ["in", "out", "in"]
+
+
+async def test_stop_please_sem_interrogacao_revoga(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("STOP please", "5511999"))
+    assert store.marketing[("L1", "whatsapp")] == "revoked" and store.suspensoes == {}
+    assert store.outbound[0]["text"] == consent.CONFIRMACOES["descadastro"]["pt"]
+
+
+async def test_resposta_sim_revoga_e_encerra_a_suspensao(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("chega", "5511999"))
+    assert store.outbound[-1]["text"] == consent.CONFIRMACOES["pergunta"]["pt"]
+    await orchestrator.handle_inbound(_wa("Sim, pode parar", "5511999"))
+    assert store.marketing[("L1", "whatsapp")] == "revoked" and store.suspensoes == {}
+    assert store.outbound[-1]["text"] == consent.CONFIRMACOES["descadastro"]["pt"]
+    assert store.consultant_calls == 0
+
+    await orchestrator.handle_inbound(_wa("sim", "5511999"))          # "sim" depois de encerrado: não faz nada de novo
+    assert store.consultant_calls == 1 and len(store.outbound) == 2
+
+
+async def test_resposta_nao_retoma_o_marketing(store: FakeStore) -> None:
+    from brain.channels import dispatch
+    from brain.core import orchestrator
+
+    _lead_ativo(store, "79161234567", "L3", "ru", "RU")
+    await orchestrator.handle_inbound(_wa("хватит", "79161234567"))
+    assert store.outbound[-1]["text"] == consent.CONFIRMACOES["pergunta"]["ru"]
+    await orchestrator.handle_inbound(_wa("нет", "79161234567"))
+    assert store.suspensoes == {} and store.marketing[("L3", "whatsapp")] == "active"
+    assert store.outbound[-1]["text"] == consent.CONFIRMACOES["mantido"]["ru"]
+    await dispatch({"channel": "whatsapp", "channel_user_id": "79161234567", "text": "Offer", "lead_id": "L3", "purpose": "marketing"})
+    assert len(store.sent) == 1                                       # marketing volta a sair
+
+
+async def test_resposta_nao_sem_consentimento_anterior_continua_bloqueado(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    store.leads[("whatsapp", "4915112345678")] = {"id": "L4", "channel": "whatsapp", "language": "de", "market_code": "DE"}
+    await orchestrator.handle_inbound(_wa("Genug?", "4915112345678"))
+    assert store.outbound[-1]["text"] == consent.CONFIRMACOES["pergunta"]["de"]
+    await orchestrator.handle_inbound(_wa("nein", "4915112345678"))
+    assert store.suspensoes == {}
+    assert await consent.pode_enviar_marketing("L4", "whatsapp") is False
+
+
+async def test_outra_mensagem_durante_a_espera_vai_ao_consultor_e_segue_suspenso(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("parar?", "5511999"))
+    await orchestrator.handle_inbound(_wa("quanto custa o safari no deserto?", "5511999"))
+    assert store.consultant_calls == 1 and len(store.outbound) == 1
+    assert ("L1", "whatsapp") in store.suspensoes and await consent.pode_enviar_marketing("L1", "whatsapp") is False
+
+
+async def test_pedido_claro_durante_a_espera_abre_tarefa_sem_nova_mensagem(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("basta", "5511999"))
+    await orchestrator.handle_inbound(_wa("não quero mais receber mensagens", "5511999"))
+    assert len(store.escalations) == 1 and len(store.outbound) == 1   # só a pergunta
+    assert store.marketing[("L1", "whatsapp")] == "active"
+
+
+async def test_termo_da_lista_durante_a_espera_revoga(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa("sair?", "5511999"))
+    await orchestrator.handle_inbound(_wa("SAIR", "5511999"))
+    assert store.marketing[("L1", "whatsapp")] == "revoked" and store.suspensoes == {}
+
+
+async def test_ambiguo_de_quem_ja_revogou_so_reconfirma(store: FakeStore) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    store.marketing[("L1", "whatsapp")] = "revoked"
+    await orchestrator.handle_inbound(_wa("stop?", "5511999"))
+    assert store.suspensoes == {} and store.outbound[0]["text"] == consent.CONFIRMACOES["descadastro"]["pt"]
+
+
+@pytest.mark.parametrize("msg", ["não pare de me mandar as fotos", "Don't stop sending the photos", "cancelar minha viagem",
+                                 "Photos bhejna stop mat karo", "Hör nicht auf, mir die Fotos zu schicken"])
+async def test_negativos_seguem_para_o_consultor(store: FakeStore, msg: str) -> None:
+    from brain.core import orchestrator
+
+    _lead_ativo(store)
+    await orchestrator.handle_inbound(_wa(msg, "5511999"))
+    assert store.consultant_calls == 1 and store.outbound == [] and store.suspensoes == {}
+    assert store.marketing[("L1", "whatsapp")] == "active"
+
+
+async def test_guarda_bloqueia_marketing_durante_a_suspensao_e_libera_transacional(store: FakeStore) -> None:
+    from brain.channels import dispatch
+    from brain.core import orchestrator
+
+    # número do Reino Unido: o +55 está pausado (WA_BR_DELIVERY_ENABLED) e não chegaria ao sender nem no transacional
+    _lead_ativo(store, "447700900000", "L1", "en", "GB")
+    mk = {"channel": "whatsapp", "channel_user_id": "447700900000", "text": "Dubai offer", "lead_id": "L1", "purpose": "marketing"}
+    await dispatch(mk)
+    assert len(store.sent) == 1  # antes da suspensão, sai
+    store.sent.clear()
+    await orchestrator.handle_inbound(_wa("STOP please?", "447700900000"))
+    await dispatch(mk)
+    await dispatch({**mk, "template": {"name": "promo_dubai", "language": {"code": "en_GB"}}})
+    assert store.sent == []
+    await dispatch({"channel": "whatsapp", "channel_user_id": "447700900000", "text": "Your voucher", "lead_id": "L1"})
+    assert [e["text"] for e in store.sent] == ["Your voucher"]
+
+    store.sent.clear()
+    await orchestrator.handle_inbound(_wa("please stop sending me offers", "447700900000"))  # claro: também bloqueia
+    await dispatch(mk)
+    assert store.sent == []
