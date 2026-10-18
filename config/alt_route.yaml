@@ -1,0 +1,21 @@
+# Mensagem de rota alternativa quando o WhatsApp não entrega para o contato (erro 130497 ou Brasil pausado).
+# Sai por outro canal do lead (Messenger, Instagram, e-mail, webchat), nunca pelo WhatsApp.
+# Só um humano muda "approved" para true, depois da validação da CEO. Enquanto false, nada é enviado.
+approved: false
+approved_by: null
+status: draft_pending_ceo_approval
+markets: [BR]          # só há texto (pt-BR) para o Brasil
+lead_window_hours: 24  # no máximo 1 rota alternativa por lead nesta janela
+
+# {channels} vira uma linha por canal com valor em ALT_ROUTE_* no .env; canal vazio não aparece.
+text_pt_br: |-
+  Oi! Aqui é a Huda, da High Class Travel Experiences. Neste momento não estou conseguindo te responder por aqui, pelo WhatsApp, e não quero te deixar sem retorno. Você pode falar comigo por onde for mais cômodo:
+  {channels}
+
+  Qual desses fica melhor pra você?
+
+channel_lines:
+  webchat: "• Chat no site: {value}"
+  email: "• E-mail: {value}"
+  messenger: "• Messenger: {value}"
+  instagram: "• Instagram: {value}"

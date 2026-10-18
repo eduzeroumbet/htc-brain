@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     webchat_signing_secret: str = Field("", alias="WEBCHAT_SIGNING_SECRET")
     huda_webhook_secret: str = Field("", alias="HUDA_WEBHOOK_SECRET")   # Huda (Manus/Evolution) → cérebro
 
+    # WhatsApp para +55: pausado até o teste de entrega passar (erro 130497). Só humano liga; nenhum código liga sozinho.
+    wa_br_delivery_enabled: bool = Field(False, alias="WA_BR_DELIVERY_ENABLED")
+    wa_br_block_scope: str = Field("all", alias="WA_BR_BLOCK_SCOPE")   # all | proactive_only
+    # rota alternativa (config/alt_route.yaml): links oferecidos ao contato; vazio = canal não aparece
+    alt_route_webchat_url: str = Field("", alias="ALT_ROUTE_WEBCHAT_URL")
+    alt_route_email: str = Field("", alias="ALT_ROUTE_EMAIL")
+    alt_route_messenger_url: str = Field("", alias="ALT_ROUTE_MESSENGER_URL")
+    alt_route_instagram_handle: str = Field("", alias="ALT_ROUTE_INSTAGRAM_HANDLE")
+
     # CEO
     ceo_whatsapp: str = Field("", alias="CEO_WHATSAPP")
     ceo_email: str = Field("", alias="CEO_EMAIL")
@@ -114,6 +123,11 @@ def escalation_config() -> dict[str, Any]:
 @lru_cache
 def budgets_config() -> dict[str, Any]:
     return _load_yaml(CONFIG_DIR / "budgets.yaml")
+
+
+@lru_cache
+def alt_route_config() -> dict[str, Any]:
+    return _load_yaml(CONFIG_DIR / "alt_route.yaml")
 
 
 @lru_cache

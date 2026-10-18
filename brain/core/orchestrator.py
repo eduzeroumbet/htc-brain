@@ -144,7 +144,7 @@ async def handle_alert(alert: dict[str, Any]) -> None:
         log.warning("alert_no_ceo_number", text=alert.get("text", "")[:200])
         return
     prefix = {"critical": "🚨 ", "high": "⚠️ ", "medium": "• ", "low": ""}.get(alert.get("severity", "low"), "")
-    await whatsapp.send({"channel_user_id": s.ceo_whatsapp.lstrip("+"), "text": f"{prefix}{alert.get('text', '')}"[:4000]})
+    await whatsapp.send({"channel_user_id": s.ceo_whatsapp.lstrip("+"), "text": f"{prefix}{alert.get('text', '')}"[:4000], "kind": "ceo_alert"})
 
 
 async def _loop(stream: str, handler, consumer: str) -> None:
