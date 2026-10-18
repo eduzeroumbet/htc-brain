@@ -13,7 +13,7 @@ from typing import Any
 import structlog
 
 from brain.channels import dispatch, email as email_ch, whatsapp
-from brain.core import bus, db, registry
+from brain.core import bus, consent, db, registry
 from brain.settings import escalation_config, get_settings
 
 log = structlog.get_logger(__name__)
@@ -27,10 +27,45 @@ async def _severe_complaint_confirmed(lead_id: str) -> bool:
     return len(rows) == 2 and all((r["sentiment"] or 0) <= -0.6 for r in rows)
 
 
+async def _handle_consent(event: dict[str, Any], lead: dict[str, Any] | None) -> bool:
+    """Descadastro (PARAR, STOP...) e pedido de exclusão de dados no WhatsApp, antes de qualquer agente.
+
+    True = tratado aqui (registrou e respondeu com a confirmação transacional no idioma do lead); o consultor não responde.
+    """
+    if event["channel"] != "whatsapp":
+        return False
+    text = event.get("text", "")
+    lang_descadastro = consent.detectar_descadastro(text)
+    lang_dsar = None if lang_descadastro else consent.detectar_dsar(text)
+    if not (lang_descadastro or lang_dsar):
+        return False
+    if lead is None:  # primeira mensagem já é o descadastro/pedido: o lead precisa existir para o registro
+        lead = await db.upsert_lead(event["channel"], event["channel_user_id"], display_name=event.get("display_name"), phone=event.get("phone"))
+    lead_id = str(lead["id"])
+    lang = consent.idioma_confirmacao(lead.get("language"), lang_descadastro or lang_dsar)
+    if lang_descadastro:
+        await consent.revogar_marketing(lead_id, event["channel"], texto=text, idioma=lang)
+        reply = consent.texto_confirmacao("descadastro", lang)
+    else:
+        req = await consent.abrir_dsar(lead_id, event["channel"], event["channel_user_id"], text,
+                                       jurisdiction="LGPD" if lead.get("market_code") == "BR" else None)
+        reply = consent.texto_confirmacao("dsar", lang, prazo=f"{req['due_at']:%d/%m/%Y}")
+    conv = await db.open_conversation(lead_id, event["channel"])
+    await db.log_message(str(conv["id"]), "in", "client", text, channel_message_id=event.get("message_id"), language=lang,
+                         intent="unsubscribe" if lang_descadastro else "dsar_erasure")
+    await db.log_message(str(conv["id"]), "out", "system", reply)
+    await bus.publish(bus.OUTBOUND, {"channel": event["channel"], "channel_user_id": event["channel_user_id"], "text": reply,
+                                     "lead_id": lead_id, "conversation_id": str(conv["id"]), "author": "system",
+                                     "purpose": "transactional", "reply_to": event.get("message_id")})
+    return True
+
+
 async def handle_inbound(event: dict[str, Any]) -> None:
     router = registry.get("escalation_router")
     consultant = registry.get("consultant")
     lead = await db.fetchrow("SELECT * FROM leads WHERE channel = $1 AND channel_user_id = $2", event["channel"], event["channel_user_id"])
+    if await _handle_consent(event, lead):
+        return
     triage = await router.triage(event, lead)  # type: ignore[attr-defined]
 
     triggers = [t for t in triage["triggers"] if not t.endswith(":candidate")]

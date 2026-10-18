@@ -51,8 +51,12 @@ async def set_contract_status(args: dict[str, Any]) -> dict[str, Any]:
 @tool("open_data_request", "Registra pedido de titular de dados (acesso|correção|exclusão|portabilidade|oposição|retirada de consentimento) com prazo pela jurisdição (nossa política: 15 dias, ou o legal se menor).", {"lead_id": str, "requester": str, "kind": str, "jurisdiction": str})
 async def open_data_request(args: dict[str, Any]) -> dict[str, Any]:
     days = min(15, DSAR_DAYS.get(args.get("jurisdiction") or "", 15))
-    row = await db.fetchrow("INSERT INTO data_requests (lead_id, requester, kind, jurisdiction, due_at) VALUES ($1,$2,$3,$4,$5) RETURNING id, due_at",
+    row = await db.fetchrow("""INSERT INTO data_requests (lead_id, requester, kind, jurisdiction, due_at) VALUES ($1,$2,$3,$4,$5)
+                               ON CONFLICT (lead_id, kind) WHERE status NOT IN ('completed', 'refused') DO NOTHING RETURNING id, due_at""",
                             args.get("lead_id"), args["requester"], args["kind"], args.get("jurisdiction"), datetime.now() + timedelta(days=days))
+    if not row:  # já existe pedido aberto do mesmo tipo para o lead (ex.: aberto pela mensagem do cliente)
+        row = await db.fetchrow("SELECT id, due_at FROM data_requests WHERE lead_id = $1 AND kind = $2 AND status NOT IN ('completed', 'refused') ORDER BY received_at DESC LIMIT 1",
+                                args.get("lead_id"), args["kind"])
     return ok(row)
 
 

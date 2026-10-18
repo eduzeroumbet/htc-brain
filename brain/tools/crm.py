@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from brain.core import db
+from brain.core import consent, db
 from brain.tools import create_sdk_mcp_server, err, ok, tool
 
 SERVER = "crm"
@@ -34,12 +34,19 @@ async def update_lead(args: dict[str, Any]) -> dict[str, Any]:
     return ok(row or {"updated": False})
 
 
-@tool("record_consent", "Registra consentimento de marketing e opt-in de WhatsApp do lead.", {"lead_id": str, "marketing": bool, "whatsapp": bool})
+@tool("record_consent", "Registra consentimento de marketing e opt-in de WhatsApp do lead (e grava no consent_log). text = frase exata que o cliente aceitou ou disse.", {"lead_id": str, "marketing": bool, "whatsapp": bool, "text": str})
 async def record_consent(args: dict[str, Any]) -> dict[str, Any]:
     await db.execute(
         "UPDATE leads SET consent_marketing = $2, opt_in_whatsapp = $3, consent_at = now() WHERE id = $1",
         args["lead_id"], bool(args.get("marketing")), bool(args.get("whatsapp")),
     )
+    lead = await db.fetchrow("SELECT channel, language FROM leads WHERE id = $1", args["lead_id"])
+    if lead:
+        if args.get("marketing"):
+            await consent.registrar_consentimento(args["lead_id"], lead["channel"], texto=args.get("text") or "consentimento de marketing registrado pelo atendimento",
+                                                  idioma=lead.get("language"), origem="record_consent")
+        else:
+            await consent.revogar_marketing(args["lead_id"], lead["channel"], texto=args.get("text") or "", idioma=lead.get("language"), origem="record_consent")
     return ok({"recorded": True})
 
 

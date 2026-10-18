@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from brain.core import bus, db, registry
+from brain.core import bus, consent, db, registry
 from brain.settings import agency_config, budgets_config, markets_config
 
 router = APIRouter()
@@ -232,6 +232,24 @@ async def finding_status(finding_id: str, status: str) -> dict[str, Any]:
         raise HTTPException(400)
     await db.execute("UPDATE audit_findings SET status = $2 WHERE id = $1", finding_id, status)
     return {"id": finding_id, "status": status}
+
+
+@router.get("/data-requests")
+async def data_requests() -> list[dict[str, Any]]:
+    """Pedidos de titulares (DSAR) abertos, do mais urgente ao menos."""
+    return await db.fetch("""SELECT d.id, d.kind, d.status, d.channel, d.jurisdiction, d.received_at, d.due_at, extract(epoch from (d.due_at - now()))/86400 AS days_left,
+                                    l.display_name, l.market_code FROM data_requests d LEFT JOIN leads l ON l.id = d.lead_id
+                             WHERE d.status NOT IN ('completed', 'refused') ORDER BY d.due_at LIMIT 50""")
+
+
+@router.post("/leads/{lead_id}/data-requests/erasure")
+async def open_erasure(lead_id: str) -> dict[str, Any]:
+    """Abre pelo painel o pedido de exclusão de dados do lead (prazo de 15 dias corridos). Idempotente."""
+    lead = await db.fetchrow("SELECT id, channel, channel_user_id, market_code FROM leads WHERE id = $1", lead_id)
+    if not lead:
+        raise HTTPException(404)
+    return await consent.abrir_dsar(lead_id, lead["channel"], lead["channel_user_id"], "aberto pelo painel",
+                                    jurisdiction="LGPD" if lead.get("market_code") == "BR" else None)
 
 
 @router.get("/experiments")
