@@ -92,6 +92,15 @@ class Settings(BaseSettings):
     alt_route_messenger_url: str = Field("", alias="ALT_ROUTE_MESSENGER_URL")
     alt_route_instagram_handle: str = Field("", alias="ALT_ROUTE_INSTAGRAM_HANDLE")
 
+    # transbordo para humano (brain/core/handoff.py): alerta à equipe e escalonamento quando o SLA vence; vazio = não envia
+    handoff_alert_channel: str = Field("email", alias="HANDOFF_ALERT_CHANNEL")             # email | whatsapp | both
+    handoff_alert_email_to: str = Field("", alias="HANDOFF_ALERT_EMAIL_TO")                # e-mails separados por vírgula
+    handoff_alert_whatsapp_to: str = Field("", alias="HANDOFF_ALERT_WHATSAPP_TO")          # números E.164 separados por vírgula
+    handoff_escalation_email_to: str = Field("", alias="HANDOFF_ESCALATION_EMAIL_TO")      # vazio = usa HANDOFF_ALERT_EMAIL_TO
+    handoff_escalation_whatsapp_to: str = Field("", alias="HANDOFF_ESCALATION_WHATSAPP_TO")
+    handoff_alert_max_attempts: int = Field(5, alias="HANDOFF_ALERT_MAX_ATTEMPTS")
+    handoff_alert_timeout_s: float = Field(10.0, alias="HANDOFF_ALERT_TIMEOUT_SECONDS")
+
     # CEO
     ceo_whatsapp: str = Field("", alias="CEO_WHATSAPP")
     ceo_email: str = Field("", alias="CEO_EMAIL")
@@ -159,6 +168,11 @@ def alt_route_config() -> dict[str, Any]:
 @lru_cache
 def consent_config() -> dict[str, Any]:
     return _load_yaml(CONFIG_DIR / "consent.yaml")
+
+
+@lru_cache
+def handoff_config() -> dict[str, Any]:
+    return _load_yaml(CONFIG_DIR / "handoff.yaml")
 
 
 @lru_cache

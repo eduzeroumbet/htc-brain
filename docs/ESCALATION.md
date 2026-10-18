@@ -26,6 +26,27 @@ A regra é simples: **a IA resolve tudo, exceto seis situações.** Elas estão 
 - Toda mudança no YAML exige `make restart` e observação de 24h; o QA reporta a taxa diária.
 
 
+## Transbordo para humano: alerta à equipe, SLA e Camada 0
+
+Além dos casos acima, cinco gatilhos abrem um evento de transbordo em `handoff_events` (`brain/core/handoff.py`) e avisam a equipe:
+
+| Gatilho | Palavra-chave (pt, en, es, ar) | Modelo (triagem) | SLA (`config/handoff.yaml`) |
+| --- | --- | --- | --- |
+| Pedido de humano | "falar com um atendente", "talk to a human", "hablar con una persona", "خدمة العملاء"… | `escalate_human` ≥ 0,5 ou intenção `human_request` | 4 h |
+| Proposta / orçamento | "orçamento", "quote", "presupuesto", "عرض سعر"… | intenção `quote_request` (obrigatória) | 30 min |
+| Pagamento | "link de pagamento", "payment", "pagar", "الدفع"… | intenção `payment`/`refund` (obrigatória) | 2 h |
+| Reclamação | "reclamação", "complaint", "queja", "شكوى"… | intenção `complaint` com sentimento ≤ −0,6 ou `severe_complaint` ≥ 0,5 | 1 h |
+| Dados pessoais (DSAR) | acesso, exclusão ou revogação: "excluir meus dados", "withdraw my consent", "acceso a mis datos", "حذف بياناتي"… | `data_request` ≥ 0,7 | 15 dias |
+
+- Proposta e pagamento são o fluxo normal de venda: a palavra sozinha não abre transbordo, só com o modelo confirmando a intenção.
+- Descadastro simples (PARAR, STOP…) continua só no `consent_log`, sem acordar a equipe.
+- **Deduplicação:** um evento por conversa e gatilho enquanto estiver na fila; mensagens repetidas só somam `occurrence_count`.
+- **Alerta em até 1 minuto:** envio na hora, em segundo plano (não segura a resposta ao cliente), e varredura a cada 60 s para o que falhou. Canal e destinatários em `HANDOFF_ALERT_*`; se o canal principal falhar, o outro entra. Falha de envio nunca derruba o atendimento: fica em `last_alert_error` e aparece como "pendente" na Camada 0.
+- **SLA vencido:** o relógio começa na detecção e não pausa; vencido sem humano, o evento vira `breached` e sai um alerta de escalonamento para `HANDOFF_ESCALATION_*` (uma vez).
+- **Atendido:** primeira mensagem de humano (`author = 'human:<nome>'`) na conversa, botão **Assumir** na Camada 0 (`POST /api/handoffs/{id}/attend`) ou caso resolvido no painel.
+- **Ao cliente:** no máximo um aviso neutro de que a equipe vai assumir (texto de referência por idioma em `config/handoff.yaml`), sem prazo novo.
+- **Camada 0** (`GET /api/dashboard/layer0`, primeiro bloco do painel): fila aberta, maior espera, tempo médio, % dentro do SLA em 24 h e 7 dias. Tempo de espera = `coalesce(attended_at, agora) − created_at`; o % conta atendidos e os que já venceram na fila.
+
 ## Triagem pelo Jev (desde out/2026)
 
 A primeira leitura de toda mensagem é do Jev (`brain/core/jev.py → triage`), em < 0,5 s: mercado, intenção, urgência, sentimento e as probabilidades `escalate_emergency`, `escalate_human`, `severe_complaint`, `compliance_risk`, `prompt_injection`, `vip_signal`. Limiares em `brain/agents/escalation_router.py`. Palavras-chave de `config/escalation.yaml` continuam valendo como rede de segurança; o Haiku só entra se o Jev não responder. Problemas operacionais (ingresso, hotel, transfer) não são escalonamento: viram `issues` do Operacional e, quando exigem presença física, programação para o pessoal de resolução (`assign_issue_to_staff`).

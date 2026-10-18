@@ -112,7 +112,7 @@ async def send(event: dict[str, Any]) -> None:
                 await delivery_failures.handle_permanent_failure(
                     category=delivery_failures.CAT_COUNTRY_RESTRICTED, source="sync", to=to, ref=delivery_failures.outbound_ref(event),
                     lead_id=event.get("lead_id"), error_code=delivery_failures.COUNTRY_RESTRICTED,
-                    fbtrace_id=(err.get("error") or {}).get("fbtrace_id"), offer_alt_route=event.get("kind") != "ceo_alert")
+                    fbtrace_id=(err.get("error") or {}).get("fbtrace_id"), offer_alt_route=event.get("kind") not in ("ceo_alert", "team_alert"))
                 # erro tipado para a fila: sem retentativa, direto ao stream dlq (sem número nem corpo na mensagem)
                 raise PermanentError(f"whatsapp HTTP {r.status_code} code={delivery_failures.COUNTRY_RESTRICTED}",
                                      code=delivery_failures.COUNTRY_RESTRICTED)

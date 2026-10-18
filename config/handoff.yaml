@@ -1,0 +1,35 @@
+# Transbordo para humano: SLA de resposta humana por gatilho (brain/core/handoff.py).
+# O relógio começa na detecção (created_at) e não pausa fora do horário comercial. Vencido sem humano → alerta de escalonamento.
+# O alerta à equipe sai em até 1 minuto da detecção (envio imediato + varredura a cada 60 s); destinatários em HANDOFF_* do .env.
+# notify_client: o consultor inclui um aviso neutro de que a equipe vai assumir (sem prometer prazo novo).
+
+alert_within_seconds: 60
+
+triggers:
+  human_request:
+    label: "Pedido de humano"
+    sla_minutes: 240          # config/escalation.yaml → explicit_request
+    notify_client: true
+  proposal:
+    label: "Proposta / orçamento"
+    sla_minutes: 30           # promessa do balcão de propostas (011_proposal_desk: due_at = pedido + 30 min)
+    notify_client: false      # a Huda segue com o balcão; a equipe só acompanha
+  payment:
+    label: "Pagamento"
+    sla_minutes: 120          # config/escalation.yaml → payment_threshold
+    notify_client: true
+  complaint:
+    label: "Reclamação"
+    sla_minutes: 60           # config/escalation.yaml → severe_complaint
+    notify_client: true
+  dsar:
+    label: "Dados pessoais (acesso, exclusão, revogação)"
+    sla_minutes: 21600        # 15 dias corridos (brain/core/consent.py → DSAR_DAYS)
+    notify_client: true
+
+# Aviso neutro de referência, por idioma. Não fala de prazo nem de quem atende.
+client_notice:
+  pt: "Vou acionar a equipe para cuidar disso com você."
+  en: "I'm bringing in the team to take care of this with you."
+  es: "Voy a avisar al equipo para que se ocupe de esto contigo."
+  ar: "سأُبلغ الفريق ليتولى هذا الأمر معك."

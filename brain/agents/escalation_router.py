@@ -67,6 +67,7 @@ class EscalationRouterAgent(BaseAgent):
             "p_compliance": ans.noul("compliance_risk"),
             "p_injection": ans.noul("prompt_injection"),
             "p_vip": ans.noul("vip_signal"),
+            "p_dsar": ans.noul("data_request"),   # transbordo DSAR (brain/core/handoff.py)
             "engine": "jev",
         }
 
@@ -93,7 +94,7 @@ class EscalationRouterAgent(BaseAgent):
                 "urgency": 1.0 if intent == "emergency" else 0.3, "sentiment": float(data.get("sentiment", 0)),
                 "p_emergency": 1.0 if intent == "emergency" else 0.0, "p_human": 1.0 if intent == "human_request" else 0.0,
                 "p_severe": 1.0 if (intent == "complaint" and float(data.get("sentiment", 0)) <= -0.6) else 0.0,
-                "p_compliance": 0.0, "p_injection": 1.0 if data.get("injection") else 0.0, "p_vip": 0.0,
+                "p_compliance": 0.0, "p_injection": 1.0 if data.get("injection") else 0.0, "p_vip": 0.0, "p_dsar": 0.0,
                 "language": data.get("language"), "engine": "haiku"}
 
     async def triage(self, event: dict[str, Any], lead: dict[str, Any] | None) -> dict[str, Any]:

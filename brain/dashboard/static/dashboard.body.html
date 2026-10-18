@@ -216,7 +216,7 @@
       </div>
     </div>
     <nav class="subnav" aria-label="Seções">
-      <a href="#ceo">CEO</a><a href="#decisoes">Decisões</a><a href="#funil">Receita &amp; funil</a><a href="#aquisicao">Aquisição</a><a href="#experimentos">Experimentos</a><a href="#atendimento">Atendimento</a><a href="#campo">Campo &amp; renovações</a><a href="#conteudo">Conteúdo</a><a href="#operacao">Operação &amp; finanças</a><a href="#maquina">Saúde da máquina</a>
+      <a href="#camada0">Camada 0</a><a href="#ceo">CEO</a><a href="#decisoes">Decisões</a><a href="#funil">Receita &amp; funil</a><a href="#aquisicao">Aquisição</a><a href="#experimentos">Experimentos</a><a href="#atendimento">Atendimento</a><a href="#campo">Campo &amp; renovações</a><a href="#conteudo">Conteúdo</a><a href="#operacao">Operação &amp; finanças</a><a href="#maquina">Saúde da máquina</a>
     </nav>
   </div>
 </div>
@@ -226,6 +226,18 @@
     <div><b>Dados de demonstração.</b> Esta página é o dashboard do CEO tal como será servido pela máquina em <code>/</code>. Quando aberta pelo próprio cérebro, ela lê <code>/api/kpis</code>, <code>/api/decisions</code>, <code>/api/departments</code>, <code>/api/ceo/chat</code>, <code>/api/finance</code> e <code>/api/issues</code> ao vivo.</div>
     <span class="pill">seed_demo.py · 30 dias</span>
   </div>
+
+  <!-- CAMADA 0: transbordo para humano agora -->
+  <section id="camada0">
+    <div class="sec-head">
+      <h2>Camada 0 · Transbordo para humano</h2>
+      <span class="meta" id="l0-meta"></span>
+    </div>
+    <div class="kpis" id="l0-kpis"></div>
+    <div class="card tbl-wrap" style="margin-top:12px">
+      <table id="l0-table"><thead><tr><th>Gatilho</th><th>Cliente</th><th>Canal</th><th class="r">Esperando</th><th class="r">SLA</th><th>Alerta à equipe</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
 
   <!-- CEO: fale com a empresa -->
   <section id="ceo">
@@ -562,6 +574,12 @@
     ['user', 'Marketing: campanha Diwali para famílias indianas.'],
     ['ai', 'Disparei para o Marketing: content_studio.campaign_brief (IN, Diwali · famílias · 5 noites · resort com clube infantil) e paid_media.scenario para dimensionar o teto. Brief chega em ~20 min no painel Conteúdo; o Compliance revisa antes de qualquer publicação.', [{ agent: 'content_studio', task: 'campaign_brief', market_code: 'IN' }, { agent: 'paid_media', task: 'scenario', market_code: 'IN' }]]];
 
+  const DEMO_LAYER0 = () => ({ open_queue_count: 3, oldest_wait_seconds: 4310, avg_wait_seconds: 1890, avg_wait_attended_seconds_24h: 1260, sla_within_pct_24h: 87.5, sla_within_pct_7d: 91.2,
+    breached_open_count: 1, alert_pending_count: 0, sla_minutes: { human_request: 240, proposal: 30, payment: 120, complaint: 60, dsar: 21600 },
+    queue: [{ id: 'h1', label: 'Reclamação', display_name: 'Rafael M.', market_code: 'BR', channel: 'whatsapp', wait_seconds: 4310, sla_seconds: 3600, status: 'breached', alert_pending: false },
+            { id: 'h2', label: 'Pagamento', display_name: 'Aisha K.', market_code: 'SA', channel: 'whatsapp', wait_seconds: 1140, sla_seconds: 7200, status: 'alerted', alert_pending: false },
+            { id: 'h3', label: 'Pedido de humano', display_name: 'Emma W.', market_code: 'GB', channel: 'webchat', wait_seconds: 220, sla_seconds: 14400, status: 'alerted', alert_pending: false }] });
+
   // ───────── estado + fonte (ao vivo se a máquina responder; senão, demo) ─────────
   let state = { mode: 'demo', days: 30, data: null, decisions: [], escalations: [], agents: [], feed: [], content: [], field: DEMO_FIELD, renewals: DEMO_RENEWALS };
   async function tryLive(days) {
@@ -571,14 +589,14 @@
       const kpis = await k.json();
       // cada endpoint é opcional: um erro não derruba o modo ao vivo (fica vazio e aparece no console)
       const j = async (u, fallback) => { try { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return await r.json(); } catch (e) { console.warn('endpoint falhou', u, e.message); return fallback; } };
-      const [decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments] = await Promise.all([
+      const [decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments, layer0] = await Promise.all([
         j('/api/decisions', []), j('/api/escalations', []), j('/api/agents', []), j('/api/feed?limit=12', []), j('/api/content', []),
         j('/api/field', { services: [], vehicles: [], driver_hours_month: [] }), j('/api/renewals', []),
         j('/api/departments', []), j('/api/ceo/chat?limit=30', []), j('/api/issues', []),
         j('/api/finance', { receivables: [], payables: [], cashflow: [], totals: {} }), j('/api/prospecting', { funnel: [], recent: [], partners: [] }),
-        j('/api/audit', { findings: [], sla: [], qa_7d: null }), j('/api/experiments', [])]);
+        j('/api/audit', { findings: [], sla: [], qa_7d: null }), j('/api/experiments', []), j('/api/dashboard/layer0', null)]);
       (kpis.daily || []).forEach(d => d.day = new Date(d.day));
-      return { kpis, decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments };
+      return { kpis, decisions, escalations, agents, feed, content, field, renewals, depts, chat, issues, finance, prospecting, audit, experiments, layer0 };
     } catch (e) { console.warn('modo demo: /api/kpis indisponível', e.message); return null; }
   }
   async function load(days) {
@@ -599,12 +617,13 @@
         arTotals: live.finance.totals,
         prospects: live.prospecting.recent.map(p => [p.name, p.country, p.stage, p.jev_fit == null ? null : +p.jev_fit, (p.direction === 'in' ? 'respondeu: ' + (p.jev_reply_class || '') : 'contato enviado')]),
         audit: live.audit.findings.map(f => [f.severity, f.area, f.title, f.recommendation || '']),
-        experiments: live.experiments.map(e => [e.market_code, e.name, e.channel, +e.budget_usd, +e.spend_actual_usd, +e.leads, e.cpl_usd == null ? null : +e.cpl_usd, +e.success_target, e.jev_promise == null ? null : +e.jev_promise, e.status, e.learning || '']) };
+        experiments: live.experiments.map(e => [e.market_code, e.name, e.channel, +e.budget_usd, +e.spend_actual_usd, +e.leads, e.cpl_usd == null ? null : +e.cpl_usd, +e.success_target, e.jev_promise == null ? null : +e.jev_promise, e.status, e.learning || '']),
+        layer0: live.layer0 };
       $('#demo-banner').hidden = true; $('#mode-pill').classList.add('live'); $('#mode-label').textContent = 'ao vivo';
     } else {
       state = { mode: 'demo', days, data: demoData(days), decisions: DEMO_DECISIONS.map(d => ({ ...d })), escalations: DEMO_ESCALATIONS, agents: DEMO_AGENTS, feed: DEMO_FEED, content: DEMO_CONTENT, field: DEMO_FIELD, renewals: DEMO_RENEWALS,
         depts: DEMO_DEPTS.map(([id, label, mission, ags], i) => [id, label, mission, ags.map((a, k) => ({ name: a, runs: [3, 9, 2, 6, 214, 48, 7, 4][i] + k, errors: 0, paused: false })), [3, 14, 2, 6, 380, 61, 9, 4][i], [1.9, 6.2, 1.1, 2.4, 11.8, 3.1, 2.6, 0.6][i]]),
-        chat: state.chat && state.chat.length ? state.chat : DEMO_CHAT, issues: DEMO_ISSUES, ar: DEMO_AR, arTotals: { ar_open: 12980, ar_overdue: 2940, ap_30d: 9400 }, prospects: DEMO_PROSPECTS, audit: DEMO_AUDIT, experiments: DEMO_EXPERIMENTS };
+        chat: state.chat && state.chat.length ? state.chat : DEMO_CHAT, issues: DEMO_ISSUES, ar: DEMO_AR, arTotals: { ar_open: 12980, ar_overdue: 2940, ap_30d: 9400 }, prospects: DEMO_PROSPECTS, audit: DEMO_AUDIT, experiments: DEMO_EXPERIMENTS, layer0: DEMO_LAYER0() };
     }
     render(state);
   }
@@ -612,6 +631,23 @@
   function fmtDue(iso) { const m = (new Date(iso) - Date.now()) / 60000; if (m < 0) return 'vencido'; if (m < 60) return Math.round(m) + 'min'; if (m < 48 * 60) return Math.round(m / 60) + 'h'; return Math.round(m / 1440) + 'd'; }
   const SEV = s => `<span class="chip ${s === 'critical' || s === 'high' ? 'bad' : s === 'medium' ? 'warn' : 'neutral'}">${s}</span>`;
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmtWait = sec => sec == null ? '—' : sec < 60 ? Math.round(sec) + ' s' : sec < 3600 ? Math.round(sec / 60) + ' min' : sec < 86400 ? (sec / 3600).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' h' : Math.round(sec / 86400) + ' d';
+  const L0_NAMES = { human_request: 'humano', proposal: 'proposta', payment: 'pagamento', complaint: 'reclamação', dsar: 'dados' };
+
+  function renderLayer0(s) {
+    const L = s.layer0;
+    if (!L) { $('#l0-kpis').innerHTML = '<div class="card empty">Camada 0 indisponível (/api/dashboard/layer0).</div>'; $('#l0-table tbody').innerHTML = ''; $('#l0-meta').textContent = ''; return; }
+    const pctOr = v => v == null ? '—' : pct(v);
+    const tiles = [
+      { label: 'Fila aberta', val: fmtN(L.open_queue_count), cls: L.breached_open_count ? 'down' : 'flat', txt: `${fmtN(L.breached_open_count)} com SLA vencido`, target: `${fmtN(L.alert_pending_count)} alerta(s) à equipe pendente(s)` },
+      { label: 'Maior espera', val: fmtWait(L.oldest_wait_seconds), cls: L.breached_open_count ? 'down' : 'flat', txt: 'cliente esperando humano há mais tempo', target: 'desde a detecção do gatilho' },
+      { label: 'Tempo médio de espera', val: fmtWait(L.avg_wait_seconds), cls: 'flat', txt: `atendidos nas últimas 24 h: ${fmtWait(L.avg_wait_attended_seconds_24h)}`, target: 'fila aberta agora' },
+      { label: 'Dentro do SLA', val: pctOr(L.sla_within_pct_24h), cls: 'flat', txt: `7 dias: ${pctOr(L.sla_within_pct_7d)}`, target: 'últimas 24 h · atendidos e vencidos na fila' },
+    ];
+    $('#l0-kpis').innerHTML = tiles.map(k => `<div class="kpi card lift"><span class="eyebrow">${k.label}</span><div class="val num">${k.val}</div><div class="delta ${k.cls}">${k.txt}</div><div class="target">${k.target}</div></div>`).join('');
+    $('#l0-table tbody').innerHTML = (L.queue || []).map(q => { const ratio = q.sla_seconds ? q.wait_seconds / q.sla_seconds : 0; return `<tr><td>${esc(q.label)}${q.subtype ? ` <span style="color:var(--muted)">· ${esc(q.subtype)}</span>` : ''}</td><td>${esc(q.display_name || 'cliente')} <span style="color:var(--muted)">${esc(MARKET_NAMES[q.market_code] || q.market_code || '')}</span></td><td class="mono">${esc(q.channel || '—')}</td><td class="r num"><span class="chip ${ratio > 1 ? 'bad' : ratio > 0.75 ? 'warn' : 'good'}">${fmtWait(q.wait_seconds)}</span></td><td class="r num">${fmtWait(q.sla_seconds)}</td><td>${q.alert_pending ? `<span class="chip warn" title="${esc(q.alert_error || '')}">pendente</span>` : '<span class="chip neutral">enviado</span>'}</td><td class="r"><button class="btn small" data-attend-handoff="${esc(q.id)}">Assumir</button></td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">Ninguém esperando humano agora.</td></tr>';
+    $('#l0-meta').textContent = `alerta à equipe ≤ 1 min · SLA: ${Object.entries(L.sla_minutes || {}).map(([g, m]) => `${L0_NAMES[g] || g} ${fmtWait(m * 60)}`).join(' · ')}`;
+  }
 
   function renderCeo(s) {
     $('#chat-log').innerHTML = (s.chat || []).map(([role, body, deleg]) => `<div class="msg ${role}">${esc(body)}${deleg && deleg.length ? `<span class="deleg">→ ${deleg.map(d => d.agent + '.' + d.task + (d.market_code ? ' (' + d.market_code + ')' : '')).join(' · ')}</span>` : ''}</div>`).join('');
@@ -660,6 +696,7 @@
     return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L ${w} ${h} L 0 ${h} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.5" fill="${color}"/></svg>`;
   }
   function render(s) {
+    renderLayer0(s);
     renderCeo(s);
     const D = s.data, daily = D.daily, sum = k => daily.reduce((a, x) => a + (+x[k] || 0), 0);
     const leads = sum('leads_new'), qualified = sum('leads_qualified'), bookings = sum('bookings'), revenue = sum('revenue_usd'), margin = sum('margin_usd'), spend = sum('ad_spend_usd'), convs = sum('conversations'), escs = sum('escalations');
@@ -761,6 +798,8 @@
     }
     const r = ev.target.closest('[data-resolve-esc]');
     if (r) { if (state.mode === 'live') { await fetch(`/api/escalations/${r.dataset.resolveEsc}/resolve`, { method: 'POST' }); await load(state.days); } else { state.escalations = state.escalations.filter(e => e.id !== r.dataset.resolveEsc); render(state); } toast('Caso resolvido — a conversa volta para a IA'); }
+    const h = ev.target.closest('[data-attend-handoff]');
+    if (h) { const id = h.dataset.attendHandoff; if (state.mode === 'live') { await fetch(`/api/handoffs/${id}/attend`, { method: 'POST' }); await load(state.days); } else { const L = state.layer0; state.layer0 = { ...L, queue: L.queue.filter(q => q.id !== id), open_queue_count: Math.max(0, L.open_queue_count - 1) }; render(state); } toast('Assumido — atendimento registrado, o caso sai da fila'); }
     const o = ev.target.closest('[data-open-esc]');
     if (o) { if (state.mode === 'live') location.href = '/inbox/'; else toast('Na máquina, isto abre a conversa no Chatwoot (/inbox)'); }
   });
