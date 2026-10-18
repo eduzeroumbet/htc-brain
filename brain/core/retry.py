@@ -3,6 +3,8 @@
 Usado pelo orquestrador (brain/core/orchestrator._loop). Sem dependências: dá para testar sem Redis.
 
 - PermanentError (ou HTTP 4xx que não seja 408/425/429) → DLQ direto, sem retentar.
+- BlockedSendError (envio barrado por política: consentimento, pausa do Brasil) → descarta com registro: sem retry e
+  sem DLQ, para o replay nunca reenviar marketing revogado nem +55 pausado. Não herda de PermanentError por isso.
 - Demais falhas → retry até max_attempts; depois, DLQ com motivo, payload, tentativas e carimbos de hora.
 - Atraso da tentativa n (n ≥ 1): min(cap, base·2^(n-1)) com jitter de ±ratio; respeita Retry-After quando houver.
 """
@@ -20,6 +22,11 @@ META_KEY = "_delivery"          # metadados de entrega guardados dentro do event
 
 class PermanentError(Exception):
     """Falha que não melhora com retry (destinatário inválido, 130497, payload recusado). Vai direto para a DLQ."""
+
+
+class BlockedSendError(Exception):
+    """Envio barrado por política (sem consentimento de marketing, Brasil pausado). Não é falha de entrega: não retenta,
+    não vai para a DLQ e não conta como 130497 (esse segue em delivery_failures.handle_permanent_failure)."""
 
 
 class TransientError(Exception):
@@ -72,7 +79,7 @@ def is_permanent(exc: BaseException) -> bool:
 
 @dataclass(frozen=True)
 class Decision:
-    action: str                 # "retry" | "dlq"
+    action: str                 # "retry" | "dlq" | "discard"
     attempts: int               # tentativas já feitas (incluindo a que acabou de falhar)
     delay_s: float = 0.0
     reason: str = ""
@@ -81,6 +88,8 @@ class Decision:
 def decide(event: dict[str, Any], exc: BaseException, policy: RetryPolicy, rng: random.Random | None = None) -> Decision:
     attempts = int((event.get(META_KEY) or {}).get("attempts", 0)) + 1
     reason = redact(f"{type(exc).__name__}: {exc}")[:500]      # mensagens de erro podem trazer URL com token
+    if isinstance(exc, BlockedSendError):
+        return Decision("discard", attempts, reason=f"blocked · {reason}")
     if is_permanent(exc):
         return Decision("dlq", attempts, reason=f"permanent · {reason}")
     if attempts >= policy.max_attempts:
@@ -111,6 +120,8 @@ async def route_failure(sink: Any, stream: str, msg_id: str, event: dict[str, An
     """Grava a falha de forma durável (retry agendado ou DLQ). Só depois disso o chamador pode dar ack.
     `sink` expõe schedule_retry(stream, event, delay_s) e dead_letter(record) — brain.core.bus em produção."""
     decision = decide(event, exc, policy, rng)
+    if decision.action == "discard":
+        return decision                                         # o registro fica no log handler_failed do chamador
     if decision.action == "retry":
         await sink.schedule_retry(stream, with_attempt(event, decision), decision.delay_s)
     else:
