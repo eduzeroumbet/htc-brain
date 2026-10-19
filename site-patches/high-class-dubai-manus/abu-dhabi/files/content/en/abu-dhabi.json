@@ -1,0 +1,421 @@
+{
+  "locale": "en",
+  "cityName": "Abu Dhabi",
+  "ui": {
+    "home": "Home",
+    "destinations": "Destinations",
+    "guide": "Abu Dhabi guide",
+    "attraction": "Attraction",
+    "itinerary": "Itinerary",
+    "article": "Planning guide",
+    "attractions": "Attractions",
+    "itineraries": "Itineraries",
+    "articles": "Planning guides",
+    "practicalInfo": "Practical information",
+    "pending": "TO BE CONFIRMED",
+    "visitTip": "Visit tip",
+    "audience": "Who it suits",
+    "outline": "Programme",
+    "notes": "Notes",
+    "faq": "Frequently asked questions",
+    "sources": "Official sources consulted",
+    "sourceUpdated": "Updated",
+    "sourceConsulted": "Consulted on",
+    "related": "Related pages",
+    "ctaTitle": "Plan Abu Dhabi with the High Class team",
+    "cta": "Plan this with Huda on WhatsApp"
+  },
+  "hub": {
+    "metaTitle": "Abu Dhabi Travel Guide: Culture, Coast, Desert | High Class",
+    "metaDescription": "A premium guide to Abu Dhabi: geography, culture, climate, getting around, Abu Dhabi versus Dubai and local etiquette, with High Class.",
+    "h1": "Abu Dhabi: culture, coast and desert",
+    "intro": "Abu Dhabi rewards travellers who plan by theme rather than by checklist. Visit Abu Dhabi presents the destination as a combination of cultural attractions, beaches, desert areas, islands and theme parks [S1]. This guide explains how the emirate fits together, how to choose your season, how to get around, how it differs from Dubai and how to be a respectful guest, so you can shape your visit with the High Class team.",
+    "sections": [
+      {
+        "heading": "Geography: a destination of distinct settings",
+        "paragraphs": ["Abu Dhabi is best understood as a set of settings rather than a single centre [S1]."],
+        "items": [
+          "**[[saadiyat-island|Saadiyat Island]]** is associated with beaches and cultural attractions, including [[louvre-abu-dhabi|Louvre Abu Dhabi]] [S1][S4].",
+          "**[[ferrari-world-yas-island|Yas Island]]** is the entertainment area, with parks and attractions [S1][S7].",
+          "Inland, **[[al-ain-jebel-hafeet|Al Ain]]** is presented as an oasis and heritage destination [S2].",
+          "[[liwa-desert|Desert experiences]], dunes and outdoor activities are promoted across the destination, and [[mangroves-jubail|mangrove kayaking]] is among the nature activities featured [S1].",
+          "Each setting has its own page in this guide, listed below."
+        ]
+      },
+      {
+        "heading": "Culture and heritage",
+        "paragraphs": ["Visit Abu Dhabi highlights [[louvre-abu-dhabi|Louvre Abu Dhabi]], [[qasr-al-watan|Qasr Al Watan]] and [[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]] as cultural references [S1][S2]. [[qasr-al-hosn|Qasr Al Hosn]] is described as one of the oldest stone buildings in Abu Dhabi, now a museum following its 2018 transformation [S4]."]
+      },
+      {
+        "heading": "Climate and best time to visit",
+        "items": [
+          "Visit Abu Dhabi describes summer as hot and humid, and suggests pairing indoor attractions by day with outdoor activities after sunset [S3].",
+          "The portal’s indoor options include Louvre Abu Dhabi, Qasr Al Watan, Ferrari World and Warner Bros. World [S4].",
+          "There is no single best month for every traveller. A museum-led trip, a beach stay and a desert day respond differently to the weather, so the right season depends on what you plan to do and how you handle heat. We help you choose the season that suits the experiences you want.",
+          "Month-by-month temperatures and recommended months: TO BE CONFIRMED."
+        ]
+      },
+      {
+        "heading": "Getting there and getting around",
+        "items": [
+          "**Arrival:** Abu Dhabi’s international airport (code AUH). Its current official name, ground transport and transfer times: TO BE CONFIRMED.",
+          "**Within the emirate:** Visit Abu Dhabi publishes an official 2026 map of shuttle bus routes, with stops that include Saadiyat and Jubail Mangrove Park [S8]. Operating days, frequencies and fares: TO BE CONFIRMED.",
+          "**From Dubai:** our Abu Dhabi programmes are designed to depart from Dubai [I1]. Road distance and journey time: TO BE CONFIRMED.",
+          "Private transport and guide support can be discussed with the team. Availability is confirmed at the time of planning."
+        ]
+      },
+      {
+        "heading": "Abu Dhabi and Dubai: choosing by priority",
+        "paragraphs": ["The official sources describe Abu Dhabi through its cultural institutions, heritage, beaches, desert, islands and theme parks [S1]. They do not support ranking one city above the other, and we do not do so here. The two can be combined in one trip: see our [[dubai-abu-dhabi-6n|Dubai + Abu Dhabi programme]] and our [[dubai-hub|Dubai guide]]."],
+        "table": {
+          "headers": ["If your priority is…", "Abu Dhabi offers (per Visit Abu Dhabi)", "Page"],
+          "rows": [
+            ["Art, architecture and heritage", "Louvre Abu Dhabi, Qasr Al Watan, Sheikh Zayed Grand Mosque, Qasr Al Hosn", "[[culture|Culture itinerary]]"],
+            ["Theme parks", "Ferrari World, Warner Bros. World and Yas Waterworld on the portal’s lists", "[[family|Family itinerary]]"],
+            ["Nature and the outdoors", "Al Ain, Jebel Hafit Desert Park, desert experiences, mangrove kayaking", "[[al-ain-jebel-hafeet|Al Ain]], [[liwa-desert|Liwa]], [[mangroves-jubail|Mangroves]]"],
+            ["A relaxed seafront evening", "Corniche Beach", "[[corniche|Corniche]]"]
+          ]
+        }
+      },
+      {
+        "heading": "Etiquette",
+        "paragraphs": ["Visit Abu Dhabi asks visitors to respect local culture and dress modestly, especially in public spaces [S1]. Rules differ by venue, and places of worship such as Sheikh Zayed Grand Mosque have their own requirements. Specific dress, photography and entry rules for each attraction: TO BE CONFIRMED on the official page. We verify them when we design your visit."]
+      }
+    ],
+    "practicalInfo": "TO BE CONFIRMED: month-by-month temperatures; airport ground transport; shuttle bus operating details; Dubai to Abu Dhabi distance and duration; conduct rules beyond dress.",
+    "faq": [
+      {"question": "How many days should I spend in Abu Dhabi?", "answer": "Visit Abu Dhabi suggests at least four days to cover the main highlights, and for one or two days it recommends prioritising the best-known landmarks [S7]. See our [[one-day|one-day]] and [[weekend|weekend]] itineraries."},
+      {"question": "Is Abu Dhabi hot in summer?", "answer": "The portal describes summer as hot and humid and suggests indoor attractions by day and outdoor time after sunset [S3]."},
+      {"question": "Can I visit Abu Dhabi from Dubai?", "answer": "Our Abu Dhabi programmes are designed to depart from Dubai [I1]. Timings are TO BE CONFIRMED when we plan your day."}
+    ],
+    "whatsappContext": "a trip to Abu Dhabi"
+  },
+  "pages": {
+    "sheikh-zayed-grand-mosque": {
+      "metaTitle": "Sheikh Zayed Grand Mosque: Visitor Guide | High Class",
+      "metaDescription": "Plan a respectful visit to Sheikh Zayed Grand Mosque in Abu Dhabi: why it matters, who it suits and what to confirm before you go.",
+      "h1": "Sheikh Zayed Grand Mosque",
+      "intro": "Visit Abu Dhabi presents Sheikh Zayed Grand Mosque among the destination’s principal cultural and architectural landmarks, and includes it among experiences suited to families [S1][S2].",
+      "sections": [
+        {"heading": "Why it belongs on your itinerary", "paragraphs": ["It is one of the references the portal uses to introduce Abu Dhabi’s cultural side, and a natural anchor for travellers drawn to architecture and heritage."]},
+        {"heading": "Visiting respectfully", "paragraphs": ["Visit Abu Dhabi asks visitors to respect local culture and dress modestly, especially in public spaces [S1]. A mosque is a place of worship, so check the current dress, entry and photography rules on the official page before you go."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours; entry and booking; detailed dress code; photography rules; detailed location.",
+      "visitTip": "Give the mosque its own slot in the day, and confirm hours, entry rules and dress code first. In hotter months the portal suggests keeping outdoor time for after sunset [S3], so check that the visiting hours suit that plan.",
+      "audience": "Travellers interested in architecture, culture and heritage; first-time visitors; families comfortable with modest dress.",
+      "faq": [
+        {"question": "Is there a dress code?", "answer": "Visit Abu Dhabi recommends modest dress in public spaces [S1]. The mosque’s specific code is TO BE CONFIRMED on the official page, and we verify current requirements when planning your visit."}
+      ],
+      "whatsappContext": "a visit to Sheikh Zayed Grand Mosque"
+    },
+    "louvre-abu-dhabi": {
+      "metaTitle": "Louvre Abu Dhabi on Saadiyat Island | High Class",
+      "metaDescription": "Louvre Abu Dhabi on Saadiyat Island: what the museum is, who it suits and what to confirm before you plan your visit.",
+      "h1": "Louvre Abu Dhabi",
+      "intro": "Visit Abu Dhabi describes Louvre Abu Dhabi as a cultural institution on Saadiyat Island that explores shared human stories through works from different cultures and periods [S4].",
+      "sections": [
+        {"heading": "A museum for slow looking", "paragraphs": ["The portal includes the museum among its indoor activities [S4] and among options for families [S6]. That makes it a useful anchor on warmer days, when Visit Abu Dhabi suggests indoor attractions by day and outdoor time after sunset [S3]."]},
+        {"heading": "Part of Saadiyat", "paragraphs": ["The museum belongs to the island’s cultural offer, which the portal associates with beaches and cultural attractions [S1]. See our [[saadiyat-island|Saadiyat Island]] page."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours and closing days; tickets; current exhibitions; entry rules and dress code.",
+      "visitTip": "Choose a clear focus before you arrive, then check current exhibitions and hours at the official source. Pair the museum with an outdoor stop later in the day if the weather calls for it.",
+      "audience": "Art, architecture and culture enthusiasts; families with an interest in museums.",
+      "faq": [
+        {"question": "Is Louvre Abu Dhabi suitable for children?", "answer": "Visit Abu Dhabi includes it in its family listings [S6]. Age guidance and any restrictions are TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "a visit to Louvre Abu Dhabi"
+    },
+    "qasr-al-watan": {
+      "metaTitle": "Qasr Al Watan: Visit the Presidential Palace | High Class",
+      "metaDescription": "Qasr Al Watan, a presidential palace open to visitors in Abu Dhabi: what it offers, who it suits and what to confirm first.",
+      "h1": "Qasr Al Watan",
+      "intro": "Visit Abu Dhabi describes Qasr Al Watan as a presidential palace that can be visited, with ceremonial spaces, interiors and a collection associated with governance and heritage [S2][S4].",
+      "sections": [
+        {"heading": "Architecture and heritage", "paragraphs": ["The palace is one of the cultural references named by the portal [S1][S2]. It is also listed among indoor activities [S4] and recommended for families [S6]."]},
+        {"heading": "Planning the visit", "paragraphs": ["Access to areas and any live performance depend on the day, so treat the programme as something to confirm rather than assume."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours; tickets; areas open to visitors; performance availability; security and entry rules.",
+      "visitTip": "Pair Qasr Al Watan with another cultural stop on the same day, such as [[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]]. Order and timing are TO BE CONFIRMED, and we check them when we plan your day.",
+      "audience": "Visitors interested in architecture, culture and history; families.",
+      "faq": [
+        {"question": "Can I see the interiors?", "answer": "The portal describes interiors and ceremonial spaces open to visitors [S2][S4]. Which areas are open on your date is TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "a visit to Qasr Al Watan"
+    },
+    "ferrari-world-yas-island": {
+      "metaTitle": "Ferrari World and Yas Island Guide | High Class",
+      "metaDescription": "Ferrari World and Yas Island, Abu Dhabi’s entertainment island: what the portal says, who it suits and what to confirm before you go.",
+      "h1": "Ferrari World and Yas Island",
+      "intro": "Visit Abu Dhabi places Ferrari World on Yas Island and describes attractions and experiences linked to the Ferrari brand [S4]. It presents Yas Island more broadly as an entertainment area with parks and attractions [S1].",
+      "sections": [
+        {"heading": "Ferrari World", "paragraphs": ["The portal lists it among indoor activities [S4] and family attractions [S6]."]},
+        {"heading": "Yas Island as a base", "paragraphs": ["Visit Abu Dhabi recommends Yas Island for stays of several days [S7]. It is the natural home of the destination’s theme parks: see our [[warner-bros-world-abu-dhabi|Warner Bros. World]] and [[yas-waterworld-abu-dhabi|Yas Waterworld]] pages."]},
+        {"heading": "Booking ahead", "paragraphs": ["The portal advises booking some family attractions in advance, especially in school holidays [S5]. This is guidance, not a guarantee of availability."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours; tickets and combined tickets; age and height restrictions; rides in operation; getting around the island.",
+      "visitTip": "Decide whether the day is about one park or the island as a whole, and check the operating calendar for your dates first.",
+      "audience": "Motorsport and Ferrari fans; families; travellers who want an entertainment-led stay. Suitability for each age is not assumed.",
+      "faq": [
+        {"question": "Is Yas Island good for a short trip?", "answer": "Visit Abu Dhabi recommends it for multi-day stays. For one or two days it suggests prioritising landmarks, so on a [[weekend|weekend]] we would pair it with other highlights [S7]."}
+      ],
+      "whatsappContext": "a visit to Ferrari World and Yas Island"
+    },
+    "warner-bros-world-abu-dhabi": {
+      "metaTitle": "Warner Bros. World Abu Dhabi: Visit Guide | High Class",
+      "metaDescription": "Warner Bros. World Abu Dhabi, an indoor themed park: what Visit Abu Dhabi says, who it suits and what to confirm before you go.",
+      "h1": "Warner Bros. World Abu Dhabi",
+      "intro": "Visit Abu Dhabi describes Warner Bros. World as an indoor park with themed areas, attractions and entertainment, and lists it among its family options [S4][S6].",
+      "sections": [
+        {"heading": "An indoor option", "paragraphs": ["The portal places it among its indoor activities [S4]. In summer, Visit Abu Dhabi suggests combining indoor attractions by day with outdoor time after sunset [S3]."]},
+        {"heading": "Family planning", "paragraphs": ["The portal advises booking some family attractions ahead, especially in school holidays [S5]. Operating details for your dates are TO BE CONFIRMED."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours and operating calendar; tickets; age and height restrictions; entry rules.",
+      "visitTip": "Check the operating calendar for your dates before building the rest of the day around the park.",
+      "audience": "Families and visitors who enjoy characters and themed attractions.",
+      "faq": [
+        {"question": "Is it indoors?", "answer": "Visit Abu Dhabi lists it among indoor activities [S4]."}
+      ],
+      "whatsappContext": "a visit to Warner Bros. World Abu Dhabi"
+    },
+    "yas-waterworld-abu-dhabi": {
+      "metaTitle": "Yas Waterworld Abu Dhabi: Visitor Guide | High Class",
+      "metaDescription": "Yas Waterworld Abu Dhabi, listed by Visit Abu Dhabi: what we can say today, who it suits and what to confirm before you plan.",
+      "h1": "Yas Waterworld Abu Dhabi",
+      "intro": "Visit Abu Dhabi lists Yas Waterworld Abu Dhabi among the destination’s attractions [S1]. It is part of the Yas Island offer, together with Ferrari World and Warner Bros. World.",
+      "sections": [
+        {"heading": "What we can say", "paragraphs": ["The official sources reviewed list the attraction by name. This page does not describe rides or areas beyond what Visit Abu Dhabi publishes, and the full description will follow once the official page is confirmed."]},
+        {"heading": "Planning with other parks", "paragraphs": ["Visit Abu Dhabi recommends Yas Island for stays of several days [S7]. Our [[ferrari-world-yas-island|Ferrari World and Yas Island]] page shows how the island fits together. The portal advises booking family attractions ahead in school holidays [S5]."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: official name and status; hours and operating season; tickets; age and height restrictions; location on the island.",
+      "visitTip": "Confirm the operating season and entry rules for your dates before adding it to a day.",
+      "audience": "Families and groups on a stay centred on Yas Island. Detailed suitability is TO BE CONFIRMED.",
+      "faq": [
+        {"question": "Where can I confirm the official name?", "answer": "The attraction is listed by Visit Abu Dhabi as Yas Waterworld Abu Dhabi [S1]. Any other name is TO BE CONFIRMED, and we use the listed name until then."}
+      ],
+      "whatsappContext": "a visit to Yas Waterworld Abu Dhabi"
+    },
+    "saadiyat-island": {
+      "metaTitle": "Saadiyat Island, Abu Dhabi: Culture and Beach | High Class",
+      "metaDescription": "Saadiyat Island pairs culture and beach in Abu Dhabi, home to Louvre Abu Dhabi. What the portal says and what to confirm before you go.",
+      "h1": "Saadiyat Island",
+      "intro": "Visit Abu Dhabi associates Saadiyat Island with beaches and cultural attractions, including Louvre Abu Dhabi [S1].",
+      "sections": [
+        {"heading": "A cultural island", "paragraphs": ["[[louvre-abu-dhabi|Louvre Abu Dhabi]] is the best-known institution here [S4]. Which other institutions are open to visitors on your dates is TO BE CONFIRMED, and we do not present any unconfirmed venue as open."]},
+        {"heading": "Getting there", "paragraphs": ["Visit Abu Dhabi’s official 2026 shuttle map includes Saadiyat stops [S8]. Operating details are TO BE CONFIRMED."]},
+        {"heading": "The beach side", "paragraphs": ["The portal links the island with beaches [S1]. Which beaches are open to visitors, and under what rules, is TO BE CONFIRMED."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: institutions open on your dates; beach access and rules; costs; transport.",
+      "visitTip": "Decide whether you want a culture day or a beach day, then check which venues are open on your dates.",
+      "audience": "Culture-minded travellers; couples; visitors who want museum and beach in one area.",
+      "faq": [
+        {"question": "Which venues are open on Saadiyat?", "answer": "It depends on your dates and is TO BE CONFIRMED with the official sources. We verify it when we plan your visit."}
+      ],
+      "whatsappContext": "a day on Saadiyat Island"
+    },
+    "corniche": {
+      "metaTitle": "Abu Dhabi Corniche: Beach and Evening Walks | High Class",
+      "metaDescription": "Abu Dhabi’s Corniche for beach time and evening walks: what Visit Abu Dhabi says, who it suits and what to confirm before you go.",
+      "h1": "Abu Dhabi Corniche",
+      "intro": "Visit Abu Dhabi includes Corniche Beach among its outdoor activities [S3][S6]. In its summer guidance it suggests an evening walk once the heat eases [S3].",
+      "sections": [
+        {"heading": "An outdoor counterpoint", "paragraphs": ["After museums and indoor attractions, the Corniche is the kind of outdoor stop the portal suggests for the evening in warmer months [S3]. It also appears on the portal’s family list [S6]."]},
+        {"heading": "Planning", "paragraphs": ["The evening walk is a suggestion from the portal, not a confirmation of conditions or services on a given day."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: beach zones and access; swimming rules; services and hours; closures.",
+      "visitTip": "Keep the Corniche for late in the day, after an indoor visit, and check conditions and rules for your date.",
+      "audience": "Visitors who want an easy outdoor evening; families; couples.",
+      "faq": [
+        {"question": "Is the Corniche better in the evening?", "answer": "In summer, Visit Abu Dhabi suggests an evening walk [S3]. Other seasons: TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "an evening on the Abu Dhabi Corniche"
+    },
+    "al-ain-jebel-hafeet": {
+      "metaTitle": "Al Ain and Jebel Hafeet: Oasis and Outdoors | High Class",
+      "metaDescription": "Al Ain’s oasis heritage and Jebel Hafit Desert Park, from Abu Dhabi: what the portal says and what to confirm before you go.",
+      "h1": "Al Ain and Jebel Hafeet",
+      "intro": "Visit Abu Dhabi presents Al Ain as an oasis and heritage destination, and lists Jebel Hafit Desert Park among experiences for hiking, cycling and camping [S2].",
+      "sections": [
+        {"heading": "Oasis and heritage", "paragraphs": ["Al Ain suits visitors who want history and nature in one outing."]},
+        {"heading": "Outdoors, and a note on spelling", "paragraphs": ["The portal writes “Jebel Hafit” [S2]. “Jebel Hafeet” is a common variant, and we use both so travellers can find this page. The official spelling is TO BE CONFIRMED."]},
+        {"heading": "A longer stay", "paragraphs": ["Visit Abu Dhabi suggests including a visit to Al Ain in longer itineraries [S7]."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: route and journey time; access and hours; trail, cycling and camping rules; climate for outdoor activity.",
+      "visitTip": "Treat Al Ain as a day of its own, and check trail and park conditions first.",
+      "audience": "Nature and heritage lovers; active travellers; anyone extending a stay beyond the main landmarks. Trail difficulty and accessibility are not assumed.",
+      "faq": [
+        {"question": "Is it worth adding Al Ain?", "answer": "The portal includes it in longer itineraries. For a one- or two-day visit it suggests prioritising landmarks [S7]."}
+      ],
+      "whatsappContext": "a visit to Al Ain and Jebel Hafeet"
+    },
+    "liwa-desert": {
+      "metaTitle": "Liwa and the Abu Dhabi Desert: Planning Guide | High Class",
+      "metaDescription": "Desert experiences in Abu Dhabi and where Liwa fits: what the portal says today and what we confirm before planning a desert day.",
+      "h1": "Liwa and the Abu Dhabi desert",
+      "intro": "Visit Abu Dhabi promotes desert experiences, including dunes and outdoor activities [S1][S2]. This page covers the desert in general, and Liwa-specific details are being confirmed.",
+      "sections": [
+        {"heading": "The desert as an experience", "paragraphs": ["The portal treats the desert as a core part of the destination, alongside culture and the coast [S1]."]},
+        {"heading": "Liwa", "paragraphs": ["The sources reviewed support the category of desert experience. They do not yet give Liwa’s location, access or activities, so we do not describe them here. We will add them from an official source."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: location and route to Liwa; activities available; season; permits and safety rules; operators and accessibility.",
+      "visitTip": "Tell us the kind of desert day you want (day or overnight, active or restful), and we confirm what is possible for your dates.",
+      "audience": "Travellers drawn to desert landscapes. The sources support the category, not a specific programme or operator.",
+      "faq": [
+        {"question": "What can I do in the desert?", "answer": "The portal mentions dunes and outdoor activities [S1][S2]. The specific programme is TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "a desert experience in Abu Dhabi"
+    },
+    "mangroves-jubail": {
+      "metaTitle": "Mangroves and Jubail, Abu Dhabi: Nature Guide | High Class",
+      "metaDescription": "Abu Dhabi’s mangroves and Jubail: kayaking as promoted by the portal, who it suits and what to confirm before you go.",
+      "h1": "Mangroves and Jubail",
+      "intro": "Visit Abu Dhabi promotes kayaking in the mangroves as a nature activity [S1]. Its official 2026 shuttle map lists Jubail Mangrove Park [S8].",
+      "sections": [
+        {"heading": "Nature close to the city", "paragraphs": ["Mangrove kayaking is one of the quieter activities the portal features."]},
+        {"heading": "What the sources do and do not say", "paragraphs": ["A stop on the shuttle map does not confirm hours or visiting conditions. We do not state that kayaking is available at Jubail on a given date."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: exact starting point; booking and operator; tide and conditions; equipment; environmental rules; hours and tickets.",
+      "visitTip": "Confirm the operator, the starting point and the conditions for your date before you plan around it.",
+      "audience": "Nature and water-activity enthusiasts. Suitability by age or fitness is not assumed.",
+      "faq": [
+        {"question": "Can I kayak in Jubail?", "answer": "The portal promotes mangrove kayaking in general [S1]. The specific location and booking are TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "a nature day in the Abu Dhabi mangroves"
+    },
+    "emirates-palace": {
+      "metaTitle": "Emirates Palace Abu Dhabi: Visitor Guide | High Class",
+      "metaDescription": "Emirates Palace in Abu Dhabi, listed as an attraction and an evening address: what to know and what to confirm first.",
+      "h1": "Emirates Palace",
+      "intro": "Visit Abu Dhabi lists Emirates Palace as an attraction and as a place of evening interest [S1].",
+      "sections": [
+        {"heading": "Architecture and hospitality", "paragraphs": ["It suits travellers interested in architecture and luxury hospitality."]},
+        {"heading": "Access", "paragraphs": ["The portal does not set out conditions for entering interior areas. Whether non-guests can visit, reserve or dine is TO BE CONFIRMED, and we do not promise interior access, tables or services."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: access for non-guests; reservations; dress code; areas open to the public; prices.",
+      "visitTip": "Because the portal presents it as an evening address, plan it for later in the day, and confirm access conditions first.",
+      "audience": "Travellers drawn to architecture and luxury hospitality.",
+      "faq": [
+        {"question": "Can I visit without staying?", "answer": "TO BE CONFIRMED with the official source. We check before building it into a plan."}
+      ],
+      "whatsappContext": "a visit to Emirates Palace"
+    },
+    "qasr-al-hosn": {
+      "metaTitle": "Qasr Al Hosn: Heritage in Abu Dhabi | High Class",
+      "metaDescription": "Qasr Al Hosn, one of Abu Dhabi’s oldest stone buildings, now a museum: what the portal says and what to confirm first.",
+      "h1": "Qasr Al Hosn",
+      "intro": "Visit Abu Dhabi describes Qasr Al Hosn as one of the oldest stone buildings in Abu Dhabi, which became a museum after its 2018 transformation [S4].",
+      "sections": [
+        {"heading": "A heritage anchor", "paragraphs": ["It is listed among indoor cultural activities [S4]. It suits visitors who want to understand the city’s history alongside its newer institutions."]},
+        {"heading": "Current programme", "paragraphs": ["The portal confirms the building’s interest, not today’s exhibitions or events. Those are TO BE CONFIRMED."]}
+      ],
+      "practicalInfo": "TO BE CONFIRMED: hours; tickets; exhibitions and events; entry rules and operating status on the day.",
+      "visitTip": "Pair it with [[qasr-al-watan|Qasr Al Watan]] for a heritage-led day, and check the operating status first.",
+      "audience": "Visitors interested in history and heritage.",
+      "faq": [
+        {"question": "Is it a museum?", "answer": "Visit Abu Dhabi describes it as a museum following its 2018 transformation [S4]. Current opening is TO BE CONFIRMED."}
+      ],
+      "whatsappContext": "a visit to Qasr Al Hosn"
+    },
+    "one-day": {
+      "metaTitle": "Abu Dhabi One Day Itinerary: Culture to Sea | High Class",
+      "metaDescription": "One day in Abu Dhabi built around its landmarks: a mosque, a museum and an evening by the sea. Timings are confirmed when we plan.",
+      "h1": "Abu Dhabi in one day",
+      "intro": "For one or two days, Visit Abu Dhabi recommends prioritising the best-known landmarks [S7]. This outline follows that advice.",
+      "outline": [
+        {"label": "Morning, culture", "text": "[[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]], subject to the entry rules and dress code you confirm first."},
+        {"label": "Midday, indoors", "text": "[[louvre-abu-dhabi|Louvre Abu Dhabi]] on Saadiyat Island. [[qasr-al-watan|Qasr Al Watan]] is an alternative if you prefer a palace to a museum."},
+        {"label": "Late day, outdoors", "text": "An evening on the [[corniche|Corniche]], the kind of walk Visit Abu Dhabi suggests in warmer months [S3]."}
+      ],
+      "notes": "No prices, hours or availability promises; the order is editorial. Viability within a single day, order and journey times are TO BE CONFIRMED. Our Abu Dhabi programmes are designed to depart from Dubai [I1].",
+      "audience": "First-time visitors with one day.",
+      "whatsappContext": "one day in Abu Dhabi"
+    },
+    "weekend": {
+      "metaTitle": "Abu Dhabi Weekend Itinerary: Culture, Leisure | High Class",
+      "metaDescription": "A two-day Abu Dhabi weekend itinerary pairing cultural landmarks with a leisure day, with room to adjust to your interests.",
+      "h1": "An Abu Dhabi weekend",
+      "outline": [
+        {"label": "Day one, landmarks", "text": "[[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]], [[qasr-al-watan|Qasr Al Watan]] and an evening on the [[corniche|Corniche]]."},
+        {"label": "Day two, your choice", "text": "A culture day ([[louvre-abu-dhabi|Louvre Abu Dhabi]] on Saadiyat Island, then [[qasr-al-hosn|Qasr Al Hosn]]) or a leisure day on [[ferrari-world-yas-island|Yas Island]]."}
+      ],
+      "notes": "No prices, hours or availability promises; the order is editorial. Combining a cultural area with a leisure area suits short stays [S7]. Order, transport and opening are TO BE CONFIRMED.",
+      "audience": "Couples and friends with two days.",
+      "whatsappContext": "a weekend in Abu Dhabi"
+    },
+    "family": {
+      "metaTitle": "Abu Dhabi Family Itinerary: Parks and Museums | High Class",
+      "metaDescription": "A family itinerary for Abu Dhabi mixing a Yas Island park day with a museum and an easy evening outdoors. Details confirmed when we plan.",
+      "h1": "Abu Dhabi with the family",
+      "outline": [
+        {"label": "Day one, Yas Island", "text": "One theme park ([[ferrari-world-yas-island|Ferrari World]], [[warner-bros-world-abu-dhabi|Warner Bros. World]] or [[yas-waterworld-abu-dhabi|Yas Waterworld]]), chosen by your children’s ages and interests."},
+        {"label": "Day two, gentler pace", "text": "[[louvre-abu-dhabi|Louvre Abu Dhabi]] or [[qasr-al-watan|Qasr Al Watan]], then an evening on the [[corniche|Corniche]]."}
+      ],
+      "notes": "Visit Abu Dhabi lists theme parks, museums and nature among its family attractions [S6]. It advises booking some family attractions in advance, especially in school holidays [S5]. This is guidance, not a guarantee of availability. Ages, height limits, accessibility and attractions in operation are TO BE CONFIRMED.",
+      "audience": "Families. Suitability for each age is confirmed attraction by attraction.",
+      "whatsappContext": "a family trip to Abu Dhabi"
+    },
+    "luxury": {
+      "metaTitle": "Abu Dhabi Luxury Itinerary: Palace and Coast | High Class",
+      "metaDescription": "A measured luxury itinerary for Abu Dhabi: Emirates Palace, Saadiyat Island and cultural landmarks. Access is confirmed, never assumed.",
+      "h1": "Abu Dhabi, the unhurried way",
+      "outline": [
+        {"label": "Day one", "text": "[[louvre-abu-dhabi|Louvre Abu Dhabi]] and [[saadiyat-island|Saadiyat Island]] at an easy pace."},
+        {"label": "Day two", "text": "[[qasr-al-watan|Qasr Al Watan]] and [[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]], with the evening at [[emirates-palace|Emirates Palace]] if non-guest access is confirmed."}
+      ],
+      "notes": "Visit Abu Dhabi lists Emirates Palace as an attraction and an evening address [S1]. Access for non-guests, reservations and dress code are TO BE CONFIRMED. Private transport and guide support can be discussed with the team. We make no promise of access, service level, price or availability.",
+      "audience": "Travellers who prefer fewer stops and more time at each.",
+      "whatsappContext": "a luxury itinerary in Abu Dhabi"
+    },
+    "culture": {
+      "metaTitle": "Abu Dhabi Culture Itinerary: Art and Heritage | High Class",
+      "metaDescription": "A culture-led Abu Dhabi itinerary linking the Louvre, Qasr Al Watan, Qasr Al Hosn and the Sheikh Zayed Grand Mosque.",
+      "h1": "Abu Dhabi for art and heritage",
+      "outline": [
+        {"label": "Day one", "text": "[[sheikh-zayed-grand-mosque|Sheikh Zayed Grand Mosque]], then [[qasr-al-watan|Qasr Al Watan]]."},
+        {"label": "Day two", "text": "[[louvre-abu-dhabi|Louvre Abu Dhabi]] on Saadiyat Island, then [[qasr-al-hosn|Qasr Al Hosn]]."},
+        {"label": "Optional extension", "text": "A day in [[al-ain-jebel-hafeet|Al Ain]], presented by the portal as an oasis and heritage destination [S2][S7]."}
+      ],
+      "notes": "The portal names these places as cultural references [S1][S2][S4]. Hours, tickets and order are TO BE CONFIRMED.",
+      "audience": "Travellers interested in art, architecture and history.",
+      "whatsappContext": "a cultural itinerary in Abu Dhabi"
+    },
+    "how-many-days": {
+      "metaTitle": "How Many Days in Abu Dhabi? 1–4 Day Guide | High Class",
+      "metaDescription": "How many days in Abu Dhabi? A practical 1 to 4 day guide based on Visit Abu Dhabi’s advice, with itineraries for each length of stay.",
+      "h1": "How many days in Abu Dhabi? A practical 1 to 4 day guide",
+      "intro": "The right length of stay depends on what you want to see. Visit Abu Dhabi suggests at least four days to cover the main highlights, and for one or two days it recommends prioritising the best-known landmarks [S7]. Here is how that advice translates into each length of trip.",
+      "sections": [
+        {"heading": "One day: choose the landmarks", "paragraphs": ["Concentrate on a few anchors: one cultural landmark, one indoor visit and an evening outdoors. Our [[one-day|one-day itinerary]] uses Sheikh Zayed Grand Mosque, Louvre Abu Dhabi and the Corniche. Whether this fits one day from Dubai depends on journey times, which are TO BE CONFIRMED."]},
+        {"heading": "Two days: culture plus one leisure choice", "paragraphs": ["A landmark day, then a second day built around [[saadiyat-island|Saadiyat Island]] or [[ferrari-world-yas-island|Yas Island]]. See the [[weekend|weekend itinerary]]. Combining cultural landmarks with a leisure area fits this length [S7]."]},
+        {"heading": "Three days: add depth or a new setting", "paragraphs": ["Deepen the cultural side ([[qasr-al-hosn|Qasr Al Hosn]], [[qasr-al-watan|Qasr Al Watan]]) or add a different setting, such as [[mangroves-jubail|mangrove kayaking]] or a desert experience [S1]."]},
+        {"heading": "Four days: the portal’s baseline", "paragraphs": ["Visit Abu Dhabi suggests at least four days for the main highlights, and recommends Yas Island, the Corniche and a visit to [[al-ain-jebel-hafeet|Al Ain]] in longer itineraries [S7]. This is editorial guidance, not a requirement."]},
+        {"heading": "Matching length to travellers", "paragraphs": ["Families may prefer slower days and advance booking [S5][S6]. Culture-led travellers may prefer fewer stops and more time at each (see our [[culture|culture itinerary]])."]},
+        {"heading": "Before you fix your days", "paragraphs": ["Opening hours, tickets and entry rules are TO BE CONFIRMED on each official page. We confirm them when we plan your itinerary, and we do not promise availability."]}
+      ],
+      "faq": [
+        {"question": "Can I do Abu Dhabi in one day?", "answer": "As a landmark-led day, yes, in line with the portal’s advice to prioritise [S7]. Timings are TO BE CONFIRMED."},
+        {"question": "Is four days too long?", "answer": "The portal suggests four days as a minimum for the main highlights [S7]."}
+      ],
+      "whatsappContext": "a trip to Abu Dhabi and the right number of days"
+    },
+    "summer": {
+      "metaTitle": "Abu Dhabi in Summer: Activities and Planning | High Class",
+      "metaDescription": "Abu Dhabi in summer: indoor attractions by day, outdoor time after sunset and how to dress with respect. Plan with Visit Abu Dhabi’s advice.",
+      "h1": "Abu Dhabi in summer: what to do and how to plan",
+      "intro": "Visit Abu Dhabi describes summer as hot and humid [S3]. The destination still has a lot to offer, as long as the day is planned around the heat.",
+      "sections": [
+        {"heading": "The portal’s rule of thumb", "paragraphs": ["Combine indoor attractions during the day with outdoor activities after sunset [S3]."]},
+        {"heading": "Indoors by day", "paragraphs": ["The portal’s indoor list includes [[louvre-abu-dhabi|Louvre Abu Dhabi]], [[qasr-al-watan|Qasr Al Watan]], [[ferrari-world-yas-island|Ferrari World]], [[warner-bros-world-abu-dhabi|Warner Bros. World]] and [[qasr-al-hosn|Qasr Al Hosn]] [S4]. Each page lists what to confirm."]},
+        {"heading": "Outdoors after sunset", "paragraphs": ["Visit Abu Dhabi suggests an evening walk on the [[corniche|Corniche]] [S3]."]},
+        {"heading": "What to wear", "paragraphs": ["Visit Abu Dhabi asks visitors to dress modestly, especially in public spaces [S1]. Places of worship, including Sheikh Zayed Grand Mosque, have their own rules, TO BE CONFIRMED on the official page."]},
+        {"heading": "Temperatures", "paragraphs": ["We do not publish temperature ranges: the sources reviewed give them only for seasonal content. They are TO BE CONFIRMED and we do not generalise them."]},
+        {"heading": "Families", "paragraphs": ["The portal advises booking some family attractions in advance, especially in school holidays [S5]. This is guidance, not a guarantee."]},
+        {"heading": "A sample day", "paragraphs": ["A museum or palace in the morning and early afternoon, a rest, then the Corniche in the evening. Our [[weekend|weekend]] and [[family|family]] itineraries apply the same rhythm."]}
+      ],
+      "faq": [
+        {"question": "What should I wear in Abu Dhabi?", "answer": "Modest dress, especially in public spaces [S1]. Venue-specific rules are TO BE CONFIRMED."},
+        {"question": "What can I do in the heat?", "answer": "The portal points to indoor attractions by day [S3][S4]."}
+      ],
+      "whatsappContext": "a summer trip to Abu Dhabi"
+    }
+  }
+}

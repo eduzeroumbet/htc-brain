@@ -1,0 +1,18 @@
+declare const process:{exitCode?:number};
+import {translateCurrentPath,abuDhabiPath,abuDhabiLocales,destinationPath,routePath} from './lib/routes';
+import {abuDhabiPageIds,abuDhabiPageKey,abuDhabiLocation,abuDhabiLinkPath} from './lib/abu-dhabi';
+import {whatsappRefPages,whatsappRefScript} from './lib/whatsapp-ref';
+const assert=(c:boolean,m:string)=>{if(!c){console.log('FAIL',m);process.exitCode=1;}else console.log('ok  ',m);};
+const pages=whatsappRefPages();
+assert(abuDhabiLocales.every(l=>abuDhabiPageIds.every(id=>pages[abuDhabiPath(l,id)]===abuDhabiPageKey(id))),'ref keys for 80 pages');
+assert(pages[destinationPath('ar','abu-dhabi')]==='destino-abu-dhabi','hub ref key unchanged');
+assert(pages[routePath('pt','dubai')]==='dubai','dubai ref key unchanged');
+assert(translateCurrentPath('/en/destinations/abu-dhabi/sheikh-zayed-grand-mosque','pt')==='/pt/destinos/abu-dhabi/grande-mesquita-sheikh-zayed','switch en->pt');
+assert(translateCurrentPath(encodeURI(abuDhabiPath('ar','summer')),'es')==='/es/destinos/abu-dhabi/abu-dabi-en-verano','switch ar->es');
+assert(translateCurrentPath('/en/destinations/abu-dhabi/abu-dhabi-in-summer','de')==='/de/reiseziele/abu-dhabi','fallback to hub in de');
+assert(translateCurrentPath('/pt/dubai/visto-dubai-brasileiros','en')==='/en/dubai','dubai article behaviour unchanged');
+assert(translateCurrentPath('/en/destinations/dubai','ar')===destinationPath('ar','dubai'),'dubai destination unchanged');
+assert(abuDhabiLocation('hub')==='abudhabi_hub_abu-dhabi'&&abuDhabiLocation('culture')==='abudhabi_itinerary_culture','locations');
+assert(abuDhabiLinkPath('es','dubai-abu-dhabi-6n')==='/es/itinerarios/dubai-abu-dhabi-6-noches','link to dubai+abu dhabi programme');
+assert(whatsappRefScript().includes('abudhabi-attraction-qasr-al-hosn'),'script embeds new keys');
+console.log('example AR path:',abuDhabiPath('ar','sheikh-zayed-grand-mosque'));
