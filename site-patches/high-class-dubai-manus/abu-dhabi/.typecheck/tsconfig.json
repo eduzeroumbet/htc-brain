@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"ES2020","lib":["es2022","dom"],"strict":true,"module":"commonjs","moduleResolution":"node","outDir":"out","types":[],"baseUrl":".","paths":{"@/*":["./*"]},"skipLibCheck":true},"include":["lib/*.ts","i18n/*.ts","base/**/*.ts","run.ts","compare.ts"]}
